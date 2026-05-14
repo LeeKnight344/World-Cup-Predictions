@@ -1,0 +1,220 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 97vh;
+  /* padding: 10px; */
+}
+
+.Titlebar {
+  background-color: #F83620;
+  height: 60px;
+  text-align: center;
+  align-content: center;
+}
+
+.Tabs {
+  display: inline-flex;
+  background-color: #FFFFFF;
+  height: 50px;
+  border-color: black;
+  border-width: 2px;
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+  text-align: center;
+  align-items: center;
+}
+
+.FixturesTab {
+  width: 50%;
+  height: 100%;
+  border-radius: 5px;
+  border-top-right-radius: 0;
+  border-top-left-radius: 0;
+  border-width: 1px;
+  box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
+}
+
+.PredictionsTab {
+  width: 50%;
+  height: 100%;
+  border-radius: 5px;
+  border-top-right-radius: 0;
+  border-top-left-radius: 0;
+  border-width: 1px;
+  box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
+}
+
+.MainBody {
+  background-color: rgb(255, 255, 255);
+  flex-grow: 1;
+  margin-top: 15px;
+}
+
+.Predictions {
+  background-color: aquamarine;
+  position: absolute;
+  left: 15px;
+  height: calc(100% - 180px);
+  width: calc(100% - 30px);
+  z-index: 0;
+  box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
+  border-radius: 15px;
+  justify-content: center;
+}
+
+.PredictionsTitle {
+  width: 100%;
+  font-weight: bolder;
+}
+
+.Groups {
+  position: absolute;
+  left: 1%;
+  top: 8%;
+  background-color: white;
+  width: 98%;
+  height: 90%;
+  border-radius: 15px;
+}
+
+.FixturesBody {
+  display: flex;
+  background-color: #FFFFFF;
+  position: absolute;
+  left: 15px;
+  height: calc(100% - 150px);
+  width: calc(100% - 30px);
+  z-index: 1;
+  border-radius: 15px;
+  column-gap: 15px;
+}
+
+.Fixtures {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 20px);
+  width: calc(50% - 20px);
+  box-shadow: 0px 5px 15px 0px rgba(0, 0, 0, 0.20);
+  border-radius: 15px;
+  align-content: center;
+  padding: 10px;
+  overflow: scroll;
+  text-align: center;
+}
+
+.FixturesTitle {
+  height: 10px;
+  font-weight: bolder
+}
+
+.FixtureTile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-width: 0;
+  border-bottom-width: 1px;
+  border-style: solid;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.TeamNames {
+  flex-grow: 1;
+  display: flex;
+  justify-items: space-between;
+  height: 30px;
+}
+
+.HomeScoreTile {
+  display: flex;
+  background-color: rgb(190, 218, 231);
+  width: 30px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  border-radius: 4px;
+  box-shadow: inset 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
+}
+
+.AwayScoreTile {
+  display: flex;
+  background-color: rgb(190, 218, 231);
+  width: 30px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  border-radius: 4px;
+  box-shadow: inset 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
+}
+
+.Score {
+}
+
+.TeamNamesandDate {
+  width: 80%;
+}
+
+.HomeTeamFixture {
+  width: 49.5%;
+  text-align: center;
+}
+
+.V {
+  width: 1%;
+}
+
+.AwayTeamFixture {
+  width: 49.5%;
+  text-align: center;
+}
+
+.MatchTime {
+  height: 30px;
+}
+
+.Leaderboard {
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  height: 100%;
+  width: 50%;
+  box-shadow: 0px 5px 15px 0px rgba(0, 0, 0, 0.20);
+  border-radius: 15px;
+}
+
+.LeaderboardTitle {
+  height: 20px;
+  text-align: center;
+  font-weight: bolder;
+}
+
+.LeaderboardList {
+  display: flex;
+  background-color: white;
+  flex-grow: 1;
+  margin: 20px;
+  margin-top: 0;
+  border-radius: 15px;
+  justify-content: center;
+  box-shadow: inset 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
+  overflow: auto;
+}
+
+.ScoresList {
+  padding-left: 0;
+  width: 60%;
+}
+
+.UserScoreTile {
+  background-color: white;
+  display: flex;
+  flex-direction: row;
+  border-style: none;
+  width: 100%;
+  height: 30px;
+  justify-content: space-between;
+}
+
