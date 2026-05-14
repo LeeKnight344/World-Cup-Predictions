@@ -49,8 +49,11 @@ function App() {
         <div className = "Predictions"
           style = {{zIndex: fixturesOnTop ? 0 : 2},{visibility: fixturesOnTop ? 'hidden' : 'visible'}}
         >
-          <p className = "PredictionsTitle">Predictions</p>
-            <div className = "Groups"></div>
+            <div className = "Groups">
+              <p className = "PredictionsTitle">Predictions</p>
+              <p className = "StageTitle">Group Stage</p>
+              <div className = "GroupStagePredBody"></div>
+            </div>
         </div>
         <div className = "FixturesBody"
           style = {{visibility: fixturesOnTop ? 'visible' : 'hidden'}}
