@@ -237,3 +237,43 @@
   justify-content: space-between;
 }
 
+.loading {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
+
+.error {
+  padding: 20px;
+  text-align: center;
+  color: #d32f2f;
+  background-color: #ffebee;
+  border-radius: 4px;
+}
+
+.SelectPrompt {
+  color: #999;
+  margin: 20px;
+}
+
+.SelectedPrediction {
+  width: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.SelectedPrediction h3 {
+  margin: 10px 0;
+  font-size: 18px;
+}
+
+.SelectedPrediction p {
+  margin: 10px 0;
+}
+
+.PredictionText {
+  font-style: italic;
+  color: #444;
+  margin-top: 15px;
+}
+
