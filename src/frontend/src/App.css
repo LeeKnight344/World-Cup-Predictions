@@ -2,19 +2,21 @@
   display: flex;
   flex-direction: column;
   height: 97vh;
-  /* padding: 10px; */
+  padding: 10px;
+  overflow: hidden;
 }
 
 .Titlebar {
-  background-color: #F83620;
-  height: 60px;
+  background-color: rgb(31, 34, 32);
+  height: 80px;
   text-align: center;
   align-content: center;
+  color: white;
 }
 
 .Tabs {
   display: inline-flex;
-  background-color: #FFFFFF;
+  background-color: rgb(255, 255, 255);
   height: 50px;
   border-color: black;
   border-width: 2px;
@@ -51,57 +53,45 @@
 }
 
 .Predictions {
-  display: flex;
+  background-color: aquamarine;
   position: absolute;
   left: 15px;
-  height: calc(100% - 140px);
+  height: calc(100% - 180px);
   width: calc(100% - 30px);
   z-index: 0;
-  box-shadow: 0px 5px 15px 0px rgba(0, 0, 0, 0.20);
+  box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
   border-radius: 15px;
   justify-content: center;
+  overflow-y: visible;
+}
+
+.Groups {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  width: 100%;
+  height: 100%;
+  border-radius: 15px;
   text-align: center;
 }
 
 .PredictionsTitle {
-  width: 100%;
-  height: 25px;
-  font-weight: bolder;
-  font-size: large;
   margin: 0;
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
 .StageTitle {
   margin: 0;
-  height: 25px;
-}
-
-.Groups {
-  display: flex;
-  flex-direction: column;
-  position: absolute;
-  background-color: #cf7676;
-  width: 100%;
-  height: 100%;
-  border-radius: 15px;
-}
-
-.GroupStagePredBody {
-  display: flex;
-  background-color: #FFFFFF;
-  flex-grow: 1;
-  margin: 15px;
-  border-radius: 15px;
-  box-shadow: inset 0px 0px 30px 0px rgba(0, 0, 0, 0.20);
+  margin-bottom: 10px;
 }
 
 .FixturesBody {
   display: flex;
-  background-color: #FFFFFF;
+  background-color: white;
   position: absolute;
   left: 15px;
-  height: calc(100% - 140px);
+  height: calc(100% - 180px);
   width: calc(100% - 30px);
   z-index: 1;
   border-radius: 15px;
@@ -111,96 +101,20 @@
 .Fixtures {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 20px);
-  width: calc(50% - 20px);
-  box-shadow: 0px 5px 15px 0px rgba(0, 0, 0, 0.20);
+  background-color: rgb(165, 127, 255);
+  height: 100%;
+  width: 50%;
+  box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
   border-radius: 15px;
-  align-content: center;
-  padding: 10px;
-  overflow: scroll;
-  text-align: center;
-}
-
-.FixturesTitle {
-  height: 10px;
-  font-weight: bolder
-}
-
-.FixtureTile {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  border-width: 0;
-  border-bottom-width: 1px;
-  border-style: solid;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.TeamNames {
-  flex-grow: 1;
-  display: flex;
-  justify-items: space-between;
-  height: 30px;
-}
-
-.HomeScoreTile {
-  display: flex;
-  background-color: rgb(190, 218, 231);
-  width: 30px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  justify-self: start;
-  border-radius: 4px;
-  box-shadow: inset 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
-}
-
-.AwayScoreTile {
-  display: flex;
-  background-color: rgb(190, 218, 231);
-  width: 30px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  justify-self: start;
-  border-radius: 4px;
-  box-shadow: inset 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
-}
-
-.Score {
-}
-
-.TeamNamesandDate {
-  width: 80%;
-}
-
-.HomeTeamFixture {
-  width: 49.5%;
-  text-align: center;
-}
-
-.V {
-  width: 1%;
-}
-
-.AwayTeamFixture {
-  width: 49.5%;
-  text-align: center;
-}
-
-.MatchTime {
-  height: 30px;
 }
 
 .Leaderboard {
   display: flex;
   flex-direction: column;
-  background-color: #FFFFFF;
+  background-color: rgb(165, 127, 255);
   height: 100%;
   width: 50%;
-  box-shadow: 0px 5px 15px 0px rgba(0, 0, 0, 0.20);
+  box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
   border-radius: 15px;
 }
 
@@ -219,7 +133,6 @@
   border-radius: 15px;
   justify-content: center;
   box-shadow: inset 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
-  overflow: auto;
 }
 
 .ScoresList {
@@ -227,7 +140,7 @@
   width: 60%;
 }
 
-.UserScoreTile {
+.ScoreTile {
   background-color: white;
   display: flex;
   flex-direction: row;
@@ -237,43 +150,86 @@
   justify-content: space-between;
 }
 
-.loading {
-  padding: 20px;
-  text-align: center;
-  color: #666;
+.PredictionsBody {
+  flex-grow: 1;
+  width: 100%;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: row;
 }
 
-.error {
-  padding: 20px;
-  text-align: center;
-  color: #d32f2f;
-  background-color: #ffebee;
-  border-radius: 4px;
+.PreviousStageArrow {
+  width: 50px;
+  border-radius: inherit;
+  border-style: none;
+  background-color: white;
 }
 
-.SelectPrompt {
-  color: #999;
+.PreviousStageArrow:hover {
+  background-color: #c0c0c0;
+}
+
+.PreviousStageArrow:active {
+  background-color: #9e9e9e;
+}
+
+.NextStageArrow {
+  width: 50px;
+  border-radius: inherit;
+  border-style: none;
+  background-color: white;
+}
+
+.NextStageArrow:hover {
+  background-color: #c0c0c0;
+}
+
+.NextStageArrow:active {
+  background-color: #9e9e9e;
+}
+
+.PredictionsFixtures {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
   margin: 20px;
 }
 
-.SelectedPrediction {
-  width: 100%;
-  padding: 20px;
-  text-align: center;
+.PredictionFixturesBody {
+  flex-grow: 1;
+  background-color: #2a7227;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
 }
 
-.SelectedPrediction h3 {
-  margin: 10px 0;
-  font-size: 18px;
+.PredictionsList {
+  display: flex;
+  column-gap: 20px;
+  justify-content: center;
+  background-color: aqua;
 }
 
-.SelectedPrediction p {
-  margin: 10px 0;
+.TeamName {
+  width: 150px;
+  background-color: #2a7227;
 }
 
-.PredictionText {
-  font-style: italic;
-  color: #444;
-  margin-top: 15px;
+.SaveButton {
+  height: 40px;
+  width: 30%;
+  align-self: center;
+  border-style: solid;
+  border-radius: 15px;
+  border-width: 1px;
+  background-color: #3c9b38;
+  color: white;
 }
 
+.SaveButton:hover {
+  background-color: #2a7227;
+}
+
+.SaveButton:active {
+  background-color: #3a9737;
+}

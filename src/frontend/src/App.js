@@ -87,18 +87,20 @@ function App() {
         <div className = "Predictions"
           style = {{zIndex: fixturesOnTop ? 0 : 2, visibility: fixturesOnTop ? 'hidden' : 'visible'}}
         >
-            <div className = "Groups">
-              <p className = "PredictionsTitle">Predictions</p>
-              {selectedFixture ? (
-                <div className = "SelectedPrediction">
-                  <h3>{selectedFixture.title}</h3>
-                  <p><strong>{selectedFixture.homeTeam}</strong> vs <strong>{selectedFixture.awayTeam}</strong></p>
-                  <p className = "PredictionText">{selectedFixture.prediction || 'No prediction yet'}</p>
+          <div className = "Groups">
+            <p className = "PredictionsTitle">Predictions</p>
+            <p className = "StageTitle">Groups</p>
+            <div className = "PredictionsBody">
+              <button className = "PreviousStageArrow"></button>
+              <div className = "PredictionsFixtures">
+                <div className = "PredictionFixturesBody">
+                  {predictionsList}
                 </div>
-              ) : (
-                <p className = "SelectPrompt">Select a fixture to view its prediction</p>
-              )}
+                <button className = "SaveButton">Save</button>
+              </div>
+              <button className = "NextStageArrow"></button>
             </div>
+          </div>
         </div>
         <div className = "FixturesBody"
           style = {{visibility: fixturesOnTop ? 'visible' : 'hidden'}}
