@@ -101,17 +101,17 @@
 .Fixtures {
   display: flex;
   flex-direction: column;
-  background-color: rgb(165, 127, 255);
   height: 100%;
   width: 50%;
   box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
   border-radius: 15px;
+  overflow-y: scroll;
 }
 
 .Leaderboard {
   display: flex;
   flex-direction: column;
-  background-color: rgb(165, 127, 255);
+  background-color: white;
   height: 100%;
   width: 50%;
   box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
@@ -232,4 +232,31 @@
 
 .SaveButton:active {
   background-color: #3a9737;
+}
+
+.LeaderboardScoresList {
+  width: 100%;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.UserScoreTile {
+  display: flex;
+  width: 90%;
+  height: 30px;
+  justify-content: space-evenly;
+  border-style: none;
+  background-color: white;
+  border-radius: 15px;
+  align-items: center;
+}
+
+.UserScoreTile:hover {
+  background-color: #c0c0c0;
+}
+
+.UserScoreTile:active {
+  background-color: #9e9e9e;
 }

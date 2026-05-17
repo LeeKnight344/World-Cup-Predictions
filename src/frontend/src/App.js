@@ -53,18 +53,18 @@ function App() {
       <div className = "HomeScoreTile">
         <p className = "Score">{fixture.homeTeamScore ?? '-'}</p>
       </div>
-      <div className = "TeamNamesandDate">
-        <div className = "TeamNames">
-          <p className = "HomeTeamFixture">{fixture.homeTeam}</p>
-          <p className = "V">V</p>
-          <p className = "AwayTeamFixture">{fixture.awayTeam}</p>
+      <div className = "FixTeamNamesandDate">
+        <div className = "FixTeamNames">
+          <p className = "FixHomeTeamFixture">{fixture.homeTeam}</p>
+          <p className = "FixV">V</p>
+          <p className = "FixAwayTeamFixture">{fixture.awayTeam}</p>
         </div>
-        <div className = "MatchTime">
+        <div className = "FixMatchTime">
           <p>{formatDate(fixture.kickoff)}</p>
         </div>
       </div>
-      <div className = "AwayScoreTile">
-        <p className = "Score">{fixture.awayTeamScore ?? '-'}</p>
+      <div className = "FixAwayScoreTile">
+        <p className = "FixScore">{fixture.awayTeamScore ?? '-'}</p>
       </div>
     </div>
   )
@@ -93,9 +93,8 @@ function App() {
             <div className = "PredictionsBody">
               <button className = "PreviousStageArrow"></button>
               <div className = "PredictionsFixtures">
-                {/* <div className = "PredictionFixturesBody">
-                  {predictionsList}
-                </div> */}
+                <div className = "PredictionFixturesBody">
+                </div>
                 <button className = "SaveButton">Save</button>
               </div>
               <button className = "NextStageArrow"></button>
@@ -107,15 +106,15 @@ function App() {
         > 
           <div className = "Fixtures">
             <p className = "FixturesTitle">Fixtures</p>
-            {loading && <div className = "loading">Loading fixtures…</div>}
+            {/* {loading && <div className = "loading">Loading fixtures…</div>}
             {error && <div className = "error">Error: {error}</div>}
             {!loading && !error && fixtures.length === 0 && <div className = "loading">No fixtures found</div>}
-            {!loading && !error && fixtures.length > 0 && fixtureList}
+            {!loading && !error && fixtures.length > 0 && fixtureList} */}
           </div>
           <div className = "Leaderboard">
             <p className = "LeaderboardTitle"> Leaderboard </p>
             <div className = "LeaderboardList">
-            <ul className = "ScoresList">{scoresList}</ul>
+            <ul className = "LeaderboardScoresList">{scoresList}</ul>
             </div>
           </div>
         </div>
