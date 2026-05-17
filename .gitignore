@@ -1,4 +1,6 @@
 .env
+.vscode
+.vs
 **/appsettings.json
 **/obj/*
 **/bin/*
