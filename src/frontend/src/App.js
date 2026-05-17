@@ -93,9 +93,9 @@ function App() {
             <div className = "PredictionsBody">
               <button className = "PreviousStageArrow"></button>
               <div className = "PredictionsFixtures">
-                <div className = "PredictionFixturesBody">
+                {/* <div className = "PredictionFixturesBody">
                   {predictionsList}
-                </div>
+                </div> */}
                 <button className = "SaveButton">Save</button>
               </div>
               <button className = "NextStageArrow"></button>
