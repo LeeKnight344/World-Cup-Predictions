@@ -51,7 +51,7 @@ function App() {
       style={{cursor: 'pointer'}}
     >
       <div className = "HomeScoreTile">
-        <p className = "Score">0</p>
+        <p className = "Score">{fixture.homeTeamScore ?? '-'}</p>
       </div>
       <div className = "TeamNamesandDate">
         <div className = "TeamNames">
@@ -64,7 +64,7 @@ function App() {
         </div>
       </div>
       <div className = "AwayScoreTile">
-        <p className = "Score">0</p>
+        <p className = "Score">{fixture.awayTeamScore ?? '-'}</p>
       </div>
     </div>
   )

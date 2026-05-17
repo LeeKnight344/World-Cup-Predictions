@@ -96,20 +96,50 @@ public sealed class DataverseFixtureService
 
     private static Fixture MapFixture(JsonElement item)
     {
-        var id = GetFirstString(item, "cr2ef_fixtureid", "activityid", "id") ?? string.Empty;
-        var homeTeam = GetFirstString(item, "cr2ef_hometeam", "cr2ef_home", "homeTeam") ?? "Home";
-        var awayTeam = GetFirstString(item, "cr2ef_awayteam", "cr2ef_away", "awayTeam") ?? "Away";
-        var title = GetFirstString(item, "cr2ef_name", "name", "subject") ?? $"{homeTeam} vs {awayTeam}";
-        var prediction = GetFirstString(item, "cr2ef_prediction", "prediction") ?? "No prediction yet";
-        var kickoffText = GetFirstString(item, "cr2ef_date@OData.Community.Display.V1.FormattedValue", "cr2ef_date", "scheduledstart");
+        var id = GetFirstString(item, "cr2ef_fixturesid", "cr2ef_fixtureid") ?? string.Empty;
+        var matchIdText = GetFirstString(item, "cr2ef_matchid", "matchid");
+        var homeTeam = GetFirstString(item, "cr2ef_team1", "cr2ef_hometeam", "cr2ef_home") ?? "Home";
+        var awayTeam = GetFirstString(item, "cr2ef_team2", "cr2ef_awayteam", "cr2ef_away") ?? "Away";
+        var title = GetFirstString(item, "cr2ef_name", "name", "subject");
+        var groupName = GetFirstString(item, "cr2ef_groupname", "groupname") ?? string.Empty;
+        var matchStatus = GetFirstString(item, "cr2ef_matchstatus", "matchstatus") ?? "scheduled";
+        var kickoffText = GetFirstString(item, "cr2ef_kickofftime", "cr2ef_date@OData.Community.Display.V1.FormattedValue", "cr2ef_date", "scheduledstart");
+        var homeTeamScoreText = GetFirstString(item, "cr2ef_team1score", "cr2ef_homescore");
+        var awayTeamScoreText = GetFirstString(item, "cr2ef_team2score", "cr2ef_awayscore");
 
+        var matchId = int.TryParse(matchIdText, out var parsed) ? parsed : 0;
+        
         DateTimeOffset? kickoff = null;
-        if (DateTimeOffset.TryParse(kickoffText, out var parsed))
+        if (DateTimeOffset.TryParse(kickoffText, out var kickoffParsed))
         {
-            kickoff = parsed;
+            kickoff = kickoffParsed;
         }
 
-        return new Fixture(id, title, homeTeam, awayTeam, kickoff, prediction);
+        int? homeTeamScore = null;
+        if (int.TryParse(homeTeamScoreText, out var homeScore))
+        {
+            homeTeamScore = homeScore;
+        }
+
+        int? awayTeamScore = null;
+        if (int.TryParse(awayTeamScoreText, out var awayScore))
+        {
+            awayTeamScore = awayScore;
+        }
+
+        return new Fixture(
+            id,
+            matchId,
+            homeTeam,
+            awayTeam,
+            kickoff,
+            homeTeamScore,
+            awayTeamScore,
+            groupName,
+            matchStatus,
+            title
+            //prediction: null
+        );
     }
 
     private static string? GetFirstString(JsonElement item, params string[] names)
