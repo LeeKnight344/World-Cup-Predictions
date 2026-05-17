@@ -2,9 +2,14 @@ namespace FixturePredictions.Models;
 
 public sealed record Fixture(
     string Id,
-    string Title,
+    int MatchId,
     string HomeTeam,
     string AwayTeam,
     DateTimeOffset? Kickoff,
-    string Prediction
+    int? HomeTeamScore,
+    int? AwayTeamScore,
+    string GroupName,
+    string MatchStatus,
+    string? Title = null,
+    string? Prediction = null
 );
