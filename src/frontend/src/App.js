@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './App.css';
+import { FixtureTile } from './FixturePredictiontile';
 
 function App() {
   const [fixturesOnTop, setFixturesOnTop] = useState(true);
@@ -94,6 +95,7 @@ function App() {
               <button className = "PreviousStageArrow"></button>
               <div className = "PredictionsFixtures">
                 <div className = "PredictionFixturesBody">
+                  <FixtureTile></FixtureTile>
                 </div>
                 <button className = "SaveButton">Save</button>
               </div>
