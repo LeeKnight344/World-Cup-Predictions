@@ -1,6 +1,11 @@
 services:
   fixture-predictions:
-    build: .
+    build:
+      context: .
+      args:
+        REACT_APP_ENTRA_CLIENT_ID: ${REACT_APP_ENTRA_CLIENT_ID}
+        REACT_APP_ENTRA_TENANT_ID: ${REACT_APP_ENTRA_TENANT_ID}
+        REACT_APP_ENTRA_REDIRECT_URI: ${REACT_APP_ENTRA_REDIRECT_URI}
     ports:
       - "8080:8080"
     env_file:
