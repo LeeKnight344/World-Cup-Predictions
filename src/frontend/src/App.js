@@ -190,9 +190,7 @@ function Dashboard() {
 
               <div className="PredictionsFixtures">
                 <div className="PredictionFixturesBody">
-                  <FixtureTile />
-                </div>
-
+                  <FixtureTile fixture={selectedFixture || fixtures[0] || {}} onPredictionChange={() => {}} />
                 <button className="SaveButton">Save</button>
               </div>
 
@@ -230,6 +228,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
