@@ -1,7 +1,7 @@
 .App {
   display: flex;
   flex-direction: column;
-  height: 97vh;
+  min-height: 100vh;
   padding: 10px;
   overflow: hidden;
 }
@@ -47,22 +47,26 @@
 }
 
 .MainBody {
+  position: relative;
   background-color: rgb(255, 255, 255);
-  flex-grow: 1;
+  flex: 1 auto;
+  min-height: 0;
   margin-top: 15px;
+  overflow: hidden;
+  height: calc(100% - 200px);
 }
 
 .Predictions {
-  background-color: aquamarine;
+  background-color: rgb(64, 148, 15);
   position: absolute;
   left: 15px;
-  height: calc(100% - 180px);
+  height: calc(100%);
   width: calc(100% - 30px);
   z-index: 0;
   box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
   border-radius: 15px;
   justify-content: center;
-  overflow-y: visible;
+  overflow-y: scroll;
 }
 
 .Groups {
@@ -88,34 +92,49 @@
 
 .FixturesBody {
   display: flex;
-  background-color: white;
+  gap: 30px;
+  background-color: rgb(161, 32, 32);
   position: absolute;
+  top: 0;
+  bottom: 0;
   left: 15px;
-  height: calc(100% - 180px);
-  width: calc(100% - 30px);
+  right: 15px;
   z-index: 1;
   border-radius: 15px;
-  column-gap: 15px;
+  overflow: hidden;
+  align-items: stretch;
+  padding: 16px;
+  box-sizing: border-box;
+  height: 100%;
 }
 
 .Fixtures {
   display: flex;
   flex-direction: column;
+  background-color: green;
+  min-height: 0;
   height: 100%;
-  width: 50%;
+  flex: 1 1 0;
   box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
   border-radius: 15px;
-  overflow-y: scroll;
+  overflow-y: auto;
+  row-gap: 15px;
+  align-items: center; /* center fixture tiles horizontally */
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 .Leaderboard {
   display: flex;
   flex-direction: column;
-  background-color: white;
+  min-height: 0;
   height: 100%;
-  width: 50%;
+  flex: 1 1 0;
   box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.20);
   border-radius: 15px;
+  overflow: hidden;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 .LeaderboardTitle {
@@ -133,6 +152,7 @@
   border-radius: 15px;
   justify-content: center;
   box-shadow: inset 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
+  overflow: auto;
 }
 
 .ScoresList {
@@ -193,6 +213,7 @@
   flex-direction: column;
   flex-grow: 1;
   margin: 20px;
+  width: 100%;
 }
 
 .PredictionFixturesBody {
@@ -200,11 +221,17 @@
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
+  column-gap: 20px;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-y: scroll;
+  max-height: calc(100% - 120px);
 }
 
 .PredictionsList {
   display: flex;
-  column-gap: 20px;
+  flex-wrap: wrap;
+  gap: 20px;
   justify-content: center;
   background-color: aqua;
 }
@@ -265,34 +292,83 @@
   
 }
 
-.FixtureTileBox {
+.FixtureTile {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  box-sizing: border-box;
+
+}
+
+.FixtureTileBox,
+.PredictionFixtureTileBox {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  max-width: 720px;
   width: 100%;
-  height: 96px;
+  height: 110px;
   padding: 14px 18px;
   background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
   border: 1px solid rgba(34, 60, 80, 0.06);
   box-shadow: 0 6px 18px rgba(29, 41, 51, 0.08);
   border-radius: 12px;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-
+  cursor: default;
 }
 
-.FixtureTileBox:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(29, 41, 51, 0.12);
+.PredictionFixtureTileBox {
+  max-width: 360px;
+}
+
+.PredictionFixtureTileBox--unscheduled {
+  box-shadow: 0 6px 18px rgba(255, 160, 160, 0.6);
+}
+
+.MatchDayHeader {
+  text-align: center;
+  font-weight: 700;
+  margin: 8px 0 12px 0;
+}
+
+.PredictionFixturesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px; /* increased gap between columns */
+  width: 100%;
+  justify-items: center;
+  overflow-y: auto;
+  background-color: green;
+}
+
+/* Responsive breakpoints: 3 cols -> 2 cols -> 1 col */
+@media (max-width: 900px) {
+  .PredictionFixturesGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .PredictionFixturesGrid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .FixtureTileBox,
+  .PredictionFixtureTileBox {
+    max-width: 100%;
+    height: auto;
+    padding: 16px;
+  }
 }
 
 .ScorePrediction {
   width: 64px;
-  height: 48px;
-  font-size: 1.25rem;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
   text-align: center;
-  border-radius: 10px;
   border: 1px solid rgba(34, 60, 80, 0.08);
   background: #ffffff;
   box-shadow: inset 0 -1px 0 rgba(0,0,0,0.02);
@@ -308,6 +384,7 @@
 .PredictionFixtureDetails {
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 input[type=number] {
@@ -318,8 +395,10 @@ input[type=number] {
 .PredictionFixtureTeams {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   min-width: 260px;
+  width: 100%;
 }
 
 .PredictionFixtureHomeTeam,
@@ -330,7 +409,27 @@ input[type=number] {
 }
 
 .PredictionFixtureTimes {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: #5b6b72;
   margin-top: 6px;
+  text-align: center;
+  width: 100%;
+}
+
+.PredictionFixtureStatus {
+  font-size: 0.85rem;
+  color: #4a5568;
+  text-align: center;
+  margin-top: 4px;
+  width: 100%;
+  text-transform: capitalize;
+}
+
+.FixturesTitle {
+  text-align: center;
+  font-weight: bolder;
+}
+
+.MatchDayGroup {
+
 }

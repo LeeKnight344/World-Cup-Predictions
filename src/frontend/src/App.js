@@ -9,7 +9,8 @@ import {
 } from "@azure/msal-react";
 import { loginRequest } from "./authConfig";
 import "./App.css";
-import { FixtureTile } from "./FixturePredictiontile";
+import { FixturePredictionTile } from "./FixturePredictiontile";
+import FixtureTile from "./FixtureTile";
 
 function SignInButton() {
   const { instance } = useMsal();
@@ -117,32 +118,43 @@ function Dashboard() {
     </button>
   ));
 
-  const fixtureList = fixtures.map((fixture) => (
-    <div
-      key={fixture.id}
-      className="FixtureTile"
-      onClick={() => setSelectedFixture(fixture)}
-      style={{ cursor: "pointer" }}
-    >
-      <div className="HomeScoreTile">
-        <p className="Score">{fixture.homeTeamScore ?? "-"}</p>
-      </div>
+  const fixturesByDay = Object.values(
+    fixtures
+      .slice()
+      .sort((a, b) => {
+        const aTime = a.kickoff ? new Date(a.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
+        const bTime = b.kickoff ? new Date(b.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
+        return aTime - bTime;
+      })
+      .reduce((acc, fixture) => {
+        const kickoff = fixture.kickoff ? new Date(fixture.kickoff) : null;
+        const key = kickoff ? kickoff.toISOString().slice(0, 10) : "nodate";
+        if (!acc[key]) acc[key] = { date: kickoff, items: [] };
+        acc[key].items.push(fixture);
+        return acc;
+      }, {})
+  );
 
-      <div className="FixTeamNamesandDate">
-        <div className="FixTeamNames">
-          <p className="FixHomeTeamFixture">{fixture.homeTeam}</p>
-          <p className="FixV">V</p>
-          <p className="FixAwayTeamFixture">{fixture.awayTeam}</p>
+  const fixtureList = fixturesByDay.map((group) => (
+    <div className="MatchDayGroup" key={group.date?.toISOString() ?? "nodate"}>
+      <h3 className="MatchDayHeader">
+        {group.date
+          ? group.date.toLocaleDateString(undefined, {
+              weekday: "long",
+              month: "short",
+              day: "numeric",
+            })
+          : "No date"}
+      </h3>
+      {group.items.map((fixture) => (
+        <div
+          key={fixture.id ?? fixture.matchId ?? `${fixture.homeTeam}-${fixture.awayTeam}`}
+          className="FixtureTile"
+          onClick={() => setSelectedFixture(fixture)}
+        >
+          <FixtureTile fixture={fixture} />
         </div>
-
-        <div className="FixMatchTime">
-          <p>{formatDate(fixture.kickoff)}</p>
-        </div>
-      </div>
-
-      <div className="FixAwayScoreTile">
-        <p className="FixScore">{fixture.awayTeamScore ?? "-"}</p>
-      </div>
+      ))}
     </div>
   ));
 
@@ -186,15 +198,48 @@ function Dashboard() {
             <p className="StageTitle">Groups</p>
 
             <div className="PredictionsBody">
-              <button className="PreviousStageArrow"></button>
-
               <div className="PredictionsFixtures">
                 <div className="PredictionFixturesBody">
-                  <FixtureTile fixture={selectedFixture || fixtures[0] || {}} onPredictionChange={() => {}} />
-                <button className="SaveButton">Save</button>
-              </div>
+                  {fixtures.length === 0 ? (
+                    <div className="loading">No fixtures available for predictions</div>
+                  ) : (
+                    (() => {
+                      const groups = fixtures.reduce((acc, f) => {
+                        const key = f.kickoff ? new Date(f.kickoff).toISOString().slice(0, 10) : "nodate";
+                        if (!acc[key]) acc[key] = { date: f.kickoff, items: [] };
+                        acc[key].items.push(f);
+                        return acc;
+                      }, {});
 
-              <button className="NextStageArrow"></button>
+                      return Object.values(groups).map((g) => (
+                        <div className="MatchDayGroup" key={g.date ?? "nodate"}>
+                          <h3 className="MatchDayHeader">
+                            {g.date
+                              ? new Date(g.date).toLocaleDateString(undefined, {
+                                  weekday: "long",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "No date"}
+                          </h3>
+                          <div className="PredictionFixturesGrid">
+                            {g.items.map((fixture) => (
+                              <div
+                                className="FixtureTile"
+                                key={fixture.id ?? fixture.matchId ?? `${fixture.homeTeam}-${fixture.awayTeam}`}
+                              >
+                                <FixturePredictionTile fixture={fixture} onPredictionChange={() => {}} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()
+                  )}
+                  <button className="SaveButton">Save</button>
+                </div>
+              </div>
+              
             </div>
           </div>
         </div>
@@ -228,7 +273,6 @@ function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
