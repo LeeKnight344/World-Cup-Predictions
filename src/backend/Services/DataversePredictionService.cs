@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using FixturePredictions.Models;
 using Microsoft.Extensions.Options;
@@ -56,6 +57,52 @@ public sealed class DataversePredictionService
         }
 
         return values.EnumerateArray().Select(MapPrediction).ToList();
+    }
+
+    public async Task UpdatePredictionAsync(
+        string predictionId,
+        int? team1ScorePrediction,
+        int? team2ScorePrediction,
+        CancellationToken cancellationToken)
+    {
+        ValidateOptions();
+
+        if (string.IsNullOrWhiteSpace(predictionId))
+        {
+            throw new ArgumentException("Prediction id is required.", nameof(predictionId));
+        }
+
+        var accessToken = await GetAccessTokenAsync(cancellationToken);
+        var client = _httpClientFactory.CreateClient();
+
+        var baseUrl = _options.EnvironmentUrl.TrimEnd('/');
+        var entitySet = Uri.EscapeDataString(_options.PredictionEntitySetName);
+        var cleanPredictionId = predictionId.Trim('{', '}');
+        var requestUri = $"{baseUrl}/api/data/v9.2/{entitySet}({cleanPredictionId})";
+
+        var payload = JsonSerializer.Serialize(new Dictionary<string, int?>
+        {
+            ["ann_team1scoreprediction"] = team1ScorePrediction,
+            ["ann_team2scoreprediction"] = team2ScorePrediction
+        });
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, requestUri)
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Add("OData-MaxVersion", "4.0");
+        request.Headers.Add("OData-Version", "4.0");
+
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Dataverse prediction update failed. Status={Status}. Body={Body}", response.StatusCode, body);
+            throw new InvalidOperationException($"Dataverse prediction update failed: {(int)response.StatusCode} {response.ReasonPhrase}");
+        }
     }
 
     private async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
