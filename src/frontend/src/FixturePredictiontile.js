@@ -1,6 +1,6 @@
 // FixtureTile.jsx
 
-export function FixturePredictionTile({ fixture = {}, onPredictionChange }) {
+export function FixturePredictionTile({ fixture = {}, prediction = null, value = {}, onPredictionChange }) {
   const homeTeam = fixture.homeTeam ?? "Home Team";
   const awayTeam = fixture.awayTeam ?? "Away Team";
   const kickoff = fixture.kickoff ? new Date(fixture.kickoff) : null;
@@ -11,11 +11,26 @@ export function FixturePredictionTile({ fixture = {}, onPredictionChange }) {
     ? kickoff.toLocaleTimeString(undefined, { timeStyle: "short" })
     : "Time";
   const status = fixture.matchStatus ?? "";
-  const isNotScheduled = status !== "Scheduled";
+  const isScheduled = status.toLowerCase() === "scheduled";
+  const isNotScheduled = !isScheduled;
+  const homeScorePrediction = value.team1ScorePrediction ?? prediction?.team1ScorePrediction ?? "";
+  const awayScorePrediction = value.team2ScorePrediction ?? prediction?.team2ScorePrediction ?? "";
+
+  const handlePredictionInput = (team) => (event) => {
+    if (!isScheduled) return;
+
+    event.target.value = event.target.value.replace(/[^0-9]/g, '');
+    onPredictionChange?.({
+      fixture,
+      prediction,
+      team,
+      value: event.target.value,
+    });
+  };
 
   return (
     <div className={`PredictionFixtureTileBox${isNotScheduled ? " PredictionFixtureTileBox--unscheduled" : ""}`}>
-        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" defaultValue={fixture.homeTeamScore ?? 0} onInput = {(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}></input>
+        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={homeScorePrediction} disabled={!isScheduled} onChange = {handlePredictionInput("team1")}></input>
         <div className = "PredictionFixtureDetails">
             <div className = "PredictionFixtureTeams">
                 <div className = "PredictionFixtureHomeTeam">{homeTeam}</div>
@@ -27,7 +42,7 @@ export function FixturePredictionTile({ fixture = {}, onPredictionChange }) {
             </div>
             <div className = "PredictionFixtureStatus">{status || "Status"}</div>
         </div>
-        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" defaultValue={fixture.awayTeamScore ?? 0} onInput = {(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}></input>
+        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={awayScorePrediction} disabled={!isScheduled} onChange = {handlePredictionInput("team2")}></input>
     </div>
   );
 }

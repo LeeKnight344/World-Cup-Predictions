@@ -260,6 +260,12 @@
   background-color: #3a9737;
 }
 
+.SaveButton:disabled {
+  background-color: #9ca3af;
+  color: #eef2f7;
+  cursor: not-allowed;
+}
+
 .LeaderboardScoresList {
   width: 100%;
   padding-left: 0;
@@ -323,6 +329,15 @@
 
 .PredictionFixtureTileBox--unscheduled {
   box-shadow: 0 6px 18px rgba(255, 160, 160, 0.6);
+}
+
+.PredictionFixtureTileBox--unscheduled .ScorePrediction,
+.ScorePrediction:disabled {
+  background: #e4e7eb;
+  border-color: #c7ced6;
+  box-shadow: none;
+  color: #6b7280;
+  cursor: not-allowed;
 }
 
 .MatchDayHeader {

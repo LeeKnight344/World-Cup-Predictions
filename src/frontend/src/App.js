@@ -66,21 +66,37 @@ function App() {
 function Dashboard() {
   const [fixturesOnTop, setFixturesOnTop] = useState(true);
   const [fixtures, setFixtures] = useState([]);
-  const [selectedFixture, setSelectedFixture] = useState(null);
+  const [predictions, setPredictions] = useState([]);
+  const [predictionEdits, setPredictionEdits] = useState({});
+  const [savingPredictions, setSavingPredictions] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [, setSelectedFixture] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchFixtures = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const response = await fetch("/api/fixtures");
+        const [fixturesResponse, predictionsResponse] = await Promise.all([
+          fetch("/api/fixtures"),
+          fetch("/api/predictions"),
+        ]);
 
-        if (!response.ok) {
+        if (!fixturesResponse.ok) {
           throw new Error("Failed to fetch fixtures");
         }
 
-        const data = await response.json();
-        setFixtures(data);
+        if (!predictionsResponse.ok) {
+          throw new Error("Failed to fetch predictions");
+        }
+
+        const [fixturesData, predictionsData] = await Promise.all([
+          fixturesResponse.json(),
+          predictionsResponse.json(),
+        ]);
+
+        setFixtures(fixturesData);
+        setPredictions(predictionsData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -88,23 +104,8 @@ function Dashboard() {
       }
     };
 
-    fetchFixtures();
+    fetchDashboardData();
   }, []);
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "Date not set";
-
-    const date = new Date(dateString);
-
-    if (Number.isNaN(date.getTime())) {
-      return dateString;
-    }
-
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(date);
-  };
 
   const scores = [
     ["Ben Dover", "67 points"],
@@ -117,6 +118,122 @@ function Dashboard() {
       <p className="Points">{player[1]}</p>
     </button>
   ));
+
+  const fixtureById = fixtures.reduce((acc, fixture) => {
+    const fixtureId = fixture.id?.toLowerCase();
+    if (fixtureId) {
+      acc[fixtureId] = fixture;
+    }
+    return acc;
+  }, {});
+
+  const isFixtureScheduled = (fixture) => {
+    return fixture.matchStatus?.toLowerCase() === "scheduled";
+  };
+
+  const parsePredictionScore = (value) => {
+    return value === "" ? null : Number(value);
+  };
+
+  const handlePredictionChange = ({ fixture, prediction, team, value }) => {
+    if (!prediction?.id || !isFixtureScheduled(fixture)) return;
+
+    setPredictionEdits((current) => {
+      const existing = current[prediction.id] ?? {
+        fixtureId: fixture.id,
+        team1ScorePrediction: prediction.team1ScorePrediction ?? "",
+        team2ScorePrediction: prediction.team2ScorePrediction ?? "",
+      };
+
+      return {
+        ...current,
+        [prediction.id]: {
+          ...existing,
+          [team === "team1" ? "team1ScorePrediction" : "team2ScorePrediction"]: value,
+        },
+      };
+    });
+  };
+
+  const savePredictionChanges = async () => {
+    const changedPredictions = Object.entries(predictionEdits);
+    if (changedPredictions.length === 0 || savingPredictions) return;
+
+    setSavingPredictions(true);
+    setSaveError(null);
+
+    try {
+      await Promise.all(
+        changedPredictions.map(([predictionId, edit]) =>
+          fetch(`/api/predictions/${encodeURIComponent(predictionId)}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fixtureId: edit.fixtureId,
+              team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
+              team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
+            }),
+          }).then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to save predictions");
+            }
+          })
+        )
+      );
+
+      setPredictions((current) =>
+        current.map((prediction) => {
+          const edit = predictionEdits[prediction.id];
+          if (!edit) return prediction;
+
+          return {
+            ...prediction,
+            team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
+            team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
+          };
+        })
+      );
+      setPredictionEdits({});
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setSavingPredictions(false);
+    }
+  };
+
+  const predictionFixturesByDay = Object.values(
+    predictions
+      .map((prediction) => {
+        const fixture = prediction.fixtureId
+          ? fixtureById[prediction.fixtureId.toLowerCase()]
+          : null;
+
+        return {
+          prediction,
+          fixture: fixture ?? {
+            id: prediction.fixtureId,
+            homeTeam: prediction.fixtureName ?? "Fixture",
+            awayTeam: "",
+            kickoff: null,
+            matchStatus: "",
+          },
+        };
+      })
+      .sort((a, b) => {
+        const aTime = a.fixture.kickoff ? new Date(a.fixture.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
+        const bTime = b.fixture.kickoff ? new Date(b.fixture.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
+        return aTime - bTime;
+      })
+      .reduce((acc, item) => {
+        const kickoff = item.fixture.kickoff ? new Date(item.fixture.kickoff) : null;
+        const key = kickoff ? kickoff.toISOString().slice(0, 10) : "nodate";
+        if (!acc[key]) acc[key] = { date: kickoff, items: [] };
+        acc[key].items.push(item);
+        return acc;
+      }, {})
+  );
 
   const fixturesByDay = Object.values(
     fixtures
@@ -200,43 +317,46 @@ function Dashboard() {
             <div className="PredictionsBody">
               <div className="PredictionsFixtures">
                 <div className="PredictionFixturesBody">
-                  {fixtures.length === 0 ? (
-                    <div className="loading">No fixtures available for predictions</div>
+                  {predictions.length === 0 ? (
+                    <div className="loading">No predictions found</div>
                   ) : (
-                    (() => {
-                      const groups = fixtures.reduce((acc, f) => {
-                        const key = f.kickoff ? new Date(f.kickoff).toISOString().slice(0, 10) : "nodate";
-                        if (!acc[key]) acc[key] = { date: f.kickoff, items: [] };
-                        acc[key].items.push(f);
-                        return acc;
-                      }, {});
-
-                      return Object.values(groups).map((g) => (
-                        <div className="MatchDayGroup" key={g.date ?? "nodate"}>
-                          <h3 className="MatchDayHeader">
-                            {g.date
-                              ? new Date(g.date).toLocaleDateString(undefined, {
-                                  weekday: "long",
-                                  month: "short",
-                                  day: "numeric",
-                                })
-                              : "No date"}
-                          </h3>
-                          <div className="PredictionFixturesGrid">
-                            {g.items.map((fixture) => (
-                              <div
-                                className="FixtureTile"
-                                key={fixture.id ?? fixture.matchId ?? `${fixture.homeTeam}-${fixture.awayTeam}`}
-                              >
-                                <FixturePredictionTile fixture={fixture} onPredictionChange={() => {}} />
-                              </div>
-                            ))}
-                          </div>
+                    predictionFixturesByDay.map((g) => (
+                      <div className="MatchDayGroup" key={g.date?.toISOString() ?? "nodate"}>
+                        <h3 className="MatchDayHeader">
+                          {g.date
+                            ? g.date.toLocaleDateString(undefined, {
+                                weekday: "long",
+                                month: "short",
+                                day: "numeric",
+                              })
+                            : "No date"}
+                        </h3>
+                        <div className="PredictionFixturesGrid">
+                          {g.items.map(({ fixture, prediction }) => (
+                            <div
+                              className="FixtureTile"
+                              key={prediction.id ?? fixture.id ?? `${fixture.homeTeam}-${fixture.awayTeam}`}
+                            >
+                              <FixturePredictionTile
+                                fixture={fixture}
+                                prediction={prediction}
+                                value={predictionEdits[prediction.id]}
+                                onPredictionChange={handlePredictionChange}
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ));
-                    })()
+                      </div>
+                    ))
                   )}
-                  <button className="SaveButton">Save</button>
+                  {saveError && <div className="error">Error: {saveError}</div>}
+                  <button
+                    className="SaveButton"
+                    disabled={Object.keys(predictionEdits).length === 0 || savingPredictions}
+                    onClick={savePredictionChanges}
+                  >
+                    {savingPredictions ? "Saving" : "Save"}
+                  </button>
                 </div>
               </div>
               
