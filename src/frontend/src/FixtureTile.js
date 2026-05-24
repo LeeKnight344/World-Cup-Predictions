@@ -15,7 +15,7 @@ export function FixtureTile({ fixture = {} }) {
   const awayScore = fixture.awayTeamScore ?? 0;
 
   return (
-    <div className="FixtureTileBox FixtureTileBox-readonly">
+    <div className="FixtureTileBox">
       <div className="ScorePrediction" aria-hidden="true">{homeScore}</div>
       <div className="PredictionFixtureDetails">
         <div className="PredictionFixtureTeams">

@@ -70,7 +70,7 @@ function Dashboard() {
   const [predictionEdits, setPredictionEdits] = useState({});
   const [savingPredictions, setSavingPredictions] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [, setSelectedFixture] = useState(null);
+  const [selectedFixture, setSelectedFixture] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -278,7 +278,9 @@ function Dashboard() {
   return (
     <div className="App">
       <div className="Titlebar">
-        <h1>Fixture Predictions</h1>
+        <h1>
+          Annata - World Cup 2026
+        </h1>
         <p>Dataverse-backed fixture list and predictions dashboard</p>
       </div>
 
@@ -350,14 +352,14 @@ function Dashboard() {
                     ))
                   )}
                   {saveError && <div className="error">Error: {saveError}</div>}
-                  <button
+                </div>
+                <button
                     className="SaveButton"
                     disabled={Object.keys(predictionEdits).length === 0 || savingPredictions}
                     onClick={savePredictionChanges}
                   >
                     {savingPredictions ? "Saving" : "Save"}
                   </button>
-                </div>
               </div>
               
             </div>

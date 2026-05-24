@@ -13,18 +13,18 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
   const status = fixture.matchStatus ?? "";
   const isScheduled = status.toLowerCase() === "scheduled";
   const isNotScheduled = !isScheduled;
-  const homeScorePrediction = value.team1ScorePrediction ?? prediction?.team1ScorePrediction ?? "";
-  const awayScorePrediction = value.team2ScorePrediction ?? prediction?.team2ScorePrediction ?? "";
+  const homeScorePrediction = value.team1ScorePrediction ?? prediction?.team1ScorePrediction ?? 0;
+  const awayScorePrediction = value.team2ScorePrediction ?? prediction?.team2ScorePrediction ?? 0;
 
   const handlePredictionInput = (team) => (event) => {
     if (!isScheduled) return;
 
-    event.target.value = event.target.value.replace(/[^0-9]/g, '');
+    const rawValue = event.target.value.replace(/[^0-9]/g, '');
     onPredictionChange?.({
       fixture,
       prediction,
       team,
-      value: event.target.value,
+      value: rawValue === "" ? "0" : rawValue,
     });
   };
 
