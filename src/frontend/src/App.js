@@ -54,7 +54,14 @@ function App() {
 
       <UnauthenticatedTemplate>
         <main className="login-page">
-          <h1>Fixture Predictions</h1>
+          <img
+              className="AnnataLogo"
+              src="/AnnataLogo.svg"
+              alt="Annata logo"
+            />
+          <div className="LoginHeader">
+            <h1>Annata World Cup Predictions Competition</h1>  
+          </div>
           <p>Please sign in to view and submit predictions.</p>
           <SignInButton />
         </main>
@@ -277,6 +284,11 @@ function Dashboard() {
 
   return (
     <div className="App">
+      <img
+              className="AnnataLogo"
+              src="/AnnataLogo.svg"
+              alt="Annata logo"
+            />
       <div className="Titlebar">
         <h1>
           Annata - World Cup 2026
@@ -336,7 +348,7 @@ function Dashboard() {
                         <div className="PredictionFixturesGrid">
                           {g.items.map(({ fixture, prediction }) => (
                             <div
-                              className="FixtureTile"
+                              className="PredictionFixtureTileHost"
                               key={prediction.id ?? fixture.id ?? `${fixture.homeTeam}-${fixture.awayTeam}`}
                             >
                               <FixturePredictionTile

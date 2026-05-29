@@ -6,6 +6,27 @@
   overflow: hidden;
 }
 
+ .LoginHeader {
+  position: relative;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.LoginHeader h1 {
+  margin: 0 auto;
+  text-align: center;
+  max-width: 640px;
+}
+
+.AnnataLogo {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+}
+
 .Titlebar {
   background-color: rgb(255, 255, 255);
   height: 80px;
@@ -57,7 +78,7 @@
 }
 
 .Predictions {
-  background-color: rgb(64, 148, 15);
+  background-color: rgb(255, 255, 255);
   position: absolute;
   left: 15px;
   height: 100%;
@@ -72,7 +93,6 @@
   position: absolute;
   display: flex;
   flex-direction: column;
-  background-color: rgb(168, 27, 27);
   width: 100%;
   height: 100%;
   border-radius: 15px;
@@ -175,7 +195,6 @@
   border-radius: 15px;
   display: flex;
   flex-direction: row;
-  background-color: rgb(40, 79, 151);
 }
 
 .PreviousStageArrow {
@@ -214,7 +233,6 @@
   flex-grow: 1;
   margin: 20px;
   width: 100%;
-  background-color: rgb(138, 49, 130);
 }
 
 .PredictionFixturesBody {
@@ -223,11 +241,12 @@
   flex-direction: column;
   flex-wrap: wrap;
   column-gap: 20px;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   overflow-y: auto;
   height: 100%;
-  background-color: rgb(62, 163, 180);
+  background-color: rgb(255, 255, 255);
 }
 
 .PredictionsList {
@@ -235,7 +254,7 @@
   flex-wrap: wrap;
   gap: 20px;
   justify-content: center;
-  background-color: aqua;
+  background-color: rgb(255, 255, 255);
 }
 
 .TeamName {
@@ -306,8 +325,8 @@
   align-items: center;
   height: 110px;
   border-radius: 12px;
-  background-color: white;
-  box-shadow: 0px 0px 5px 0px rgba(0, 0, 0, 0.20);
+  background-color: rgb(255, 255, 255);
+  box-shadow: 3px 3px 10px 0px rgba(0, 0, 0, 0.20);
 }
 
 .FixtureTileBox,
@@ -319,24 +338,24 @@
   width: 100%;
   height: 110px;
   padding: 14px 18px;
-  background-color: #ffffff;
   border-radius: 12px;
   cursor: default;
 }
 
-
-/* .FixtureTileBox {
-  box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.20);
-} */
+.PredictionFixtureTileHost {
+  max-width: 450px;
+}
 
 .PredictionFixtureTileBox {
   max-width: 450px;
-  box-shadow: 0px 0px 30px 0px rgba(255, 0, 0, 0.356);
+  box-shadow: 3px 3px 10px 0px rgba(0, 0, 0, 0.781);
 }
 
 .PredictionFixtureTileBox--unscheduled {
-  box-shadow: 0px 0px 5px 0px rgba(253, 71, 71, 0.459);
+  height: 110px;
+  box-shadow: 3px 3px 10px 0px rgba(253, 71, 71, 0.459);
 }
+
 .PredictionFixtureTileBox--unscheduled .ScorePrediction,
 .ScorePrediction:disabled {
   background: #e4e7eb;
@@ -360,7 +379,7 @@
   gap: 28px; /* increased gap between columns */
   width: 100%;
   justify-items: center;
-  background-color: green;
+  background-color: rgb(255, 255, 255);
   height: 100%;
 }
 
@@ -454,3 +473,17 @@ input[type=number] {
   flex-direction: column;
   gap: 15px;
 }
+
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.SignInButton {
+  height: 40px;
+  width: 200px;
+}
+
