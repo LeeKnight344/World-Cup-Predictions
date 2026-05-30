@@ -79,6 +79,7 @@ function Dashboard() {
   const [predictionEdits, setPredictionEdits] = useState({});
   const [savingPredictions, setSavingPredictions] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [loadingPredictionsPage, setLoadingPredictionsPage] = useState(false);
   const [selectedFixture, setSelectedFixture] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -170,21 +171,40 @@ function Dashboard() {
     });
   };
 
+  const loadPredictionsPage = async () => {
+    if (loadingPredictionsPage) return;
+
+    setLoadingPredictionsPage(true);
+    setSaveError(null);
+
+    try {
+      const response = await fetch("/api/predictions/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: account?.username ?? null,
+        }),
+      });
+
+      if (response.status !== 202) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to generate predictions");
+      }
+
+      await fetchDashboardData();
+      setFixturesOnTop(false);
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setLoadingPredictionsPage(false);
+    }
+  };
+
   const savePredictionChanges = async () => {
     const changedPredictions = Object.entries(predictionEdits);
     if (changedPredictions.length === 0 || savingPredictions) return;
-
-    const predictionSaveEndpoint = process.env.REACT_APP_PREDICTION_SAVE_ENDPOINT;
-
-    if (!predictionSaveEndpoint) {
-      setSaveError("Prediction save endpoint is not configured.");
-      return;
-    }
-
-    if (!predictionSaveEndpoint.toLowerCase().startsWith("https://")) {
-      setSaveError("Prediction save endpoint must be an HTTPS URL.");
-      return;
-    }
 
     setSavingPredictions(true);
     setSaveError(null);
@@ -222,7 +242,7 @@ function Dashboard() {
         }),
       };
 
-      const response = await fetch(predictionSaveEndpoint, {
+      const response = await fetch("/api/predictions/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -231,7 +251,8 @@ function Dashboard() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save predictions");
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to save predictions");
       }
 
       setPredictions((current) =>
@@ -352,13 +373,14 @@ function Dashboard() {
 
         <button
           className="PredictionsTab"
-          onClick={() => {
-            setFixturesOnTop(false);
-          }}
+          disabled={loadingPredictionsPage}
+          onClick={loadPredictionsPage}
         >
-          Predictions
+          {loadingPredictionsPage ? "Loading" : "Predictions"}
         </button>
       </div>
+
+      {saveError && <div className="error">Error: {saveError}</div>}
 
       <div className="MainBody">
         <div
@@ -407,7 +429,6 @@ function Dashboard() {
                       </div>
                     ))
                   )}
-                  {saveError && <div className="error">Error: {saveError}</div>}
                 </div>
                 <button
                     className="SaveButton"

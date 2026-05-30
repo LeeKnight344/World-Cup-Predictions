@@ -68,6 +68,45 @@ app.MapPost("/api/predictions/submit", async (
     return Results.NoContent();
 });
 
+app.MapPost("/api/predictions/generate", async (
+    JsonElement requestBody,
+    IConfiguration configuration,
+    IHttpClientFactory httpClientFactory,
+    ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    var endpoint = configuration["PredictionGeneration:Endpoint"] ?? configuration["REACT_APP_PREDICTION_GENERATION_ENDPOINT"];
+
+    if (string.IsNullOrWhiteSpace(endpoint))
+    {
+        return Results.Problem("Prediction generation endpoint is not configured.", statusCode: StatusCodes.Status500InternalServerError);
+    }
+
+    if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri) || endpointUri.Scheme != Uri.UriSchemeHttps)
+    {
+        return Results.Problem("Prediction generation endpoint must be an HTTPS URL.", statusCode: StatusCodes.Status500InternalServerError);
+    }
+
+    var client = httpClientFactory.CreateClient();
+    using var content = new StringContent(requestBody.GetRawText(), Encoding.UTF8, "application/json");
+    var response = await client.PostAsync(endpointUri, content, cancellationToken);
+
+    if ((int)response.StatusCode != StatusCodes.Status202Accepted)
+    {
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        logger.LogWarning(
+            "Prediction generation endpoint did not return 202 Accepted. Status={Status}. Body={Body}",
+            response.StatusCode,
+            responseBody);
+
+        return Results.Problem(
+            $"Prediction generation endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.",
+            statusCode: StatusCodes.Status502BadGateway);
+    }
+
+    return Results.Accepted();
+});
+
 app.MapPatch("/api/predictions/{predictionId}", async (
     string predictionId,
     UpdatePredictionRequest update,
