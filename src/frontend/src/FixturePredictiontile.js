@@ -11,14 +11,10 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
     ? kickoff.toLocaleTimeString(undefined, { timeStyle: "short" })
     : "Time";
   const status = fixture.matchStatus ?? "";
-  const isScheduled = status.toLowerCase() === "scheduled";
-  const isNotScheduled = !isScheduled;
   const homeScorePrediction = value.team1ScorePrediction ?? prediction?.team1ScorePrediction ?? 0;
   const awayScorePrediction = value.team2ScorePrediction ?? prediction?.team2ScorePrediction ?? 0;
 
   const handlePredictionInput = (team) => (event) => {
-    if (!isScheduled) return;
-
     const rawValue = event.target.value.replace(/[^0-9]/g, '');
     onPredictionChange?.({
       fixture,
@@ -29,8 +25,8 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
   };
 
   return (
-    <div className={`PredictionFixtureTileBox${isNotScheduled ? " PredictionFixtureTileBox--unscheduled" : ""}`}>
-        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={homeScorePrediction} disabled={!isScheduled} onChange = {handlePredictionInput("team1")}></input>
+    <div className="PredictionFixtureTileBox">
+        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={homeScorePrediction} onChange = {handlePredictionInput("team1")}></input>
         <div className = "PredictionFixtureDetails">
             <div className = "PredictionFixtureTeams">
                 <div className = "PredictionFixtureHomeTeam">{homeTeam}</div>
@@ -42,7 +38,7 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
             </div>
             <div className = "PredictionFixtureStatus">{status || "Status"}</div>
         </div>
-        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={awayScorePrediction} disabled={!isScheduled} onChange = {handlePredictionInput("team2")}></input>
+        <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={awayScorePrediction} onChange = {handlePredictionInput("team2")}></input>
     </div>
   );
 }

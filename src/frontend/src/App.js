@@ -1,7 +1,7 @@
 //use a .js formatting tool from VS otherwise i'm going to ddos you
 
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   AuthenticatedTemplate,
   UnauthenticatedTemplate,
@@ -71,6 +71,8 @@ function App() {
 }
 
 function Dashboard() {
+  const { accounts } = useMsal();
+  const account = accounts[0];
   const [fixturesOnTop, setFixturesOnTop] = useState(true);
   const [fixtures, setFixtures] = useState([]);
   const [predictions, setPredictions] = useState([]);
@@ -81,29 +83,35 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const fetchDashboardData = useCallback(async () => {
+    const [fixturesResponse, predictionsResponse] = await Promise.all([
+      fetch("/api/fixtures"),
+      fetch("/api/predictions"),
+    ]);
+
+    if (!fixturesResponse.ok) {
+      throw new Error("Failed to fetch fixtures");
+    }
+
+    if (!predictionsResponse.ok) {
+      throw new Error("Failed to fetch predictions");
+    }
+
+    const [fixturesData, predictionsData] = await Promise.all([
+      fixturesResponse.json(),
+      predictionsResponse.json(),
+    ]);
+
+    setFixtures(fixturesData);
+    setPredictions(predictionsData);
+
+    return { fixtures: fixturesData, predictions: predictionsData };
+  }, []);
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const loadDashboardData = async () => {
       try {
-        const [fixturesResponse, predictionsResponse] = await Promise.all([
-          fetch("/api/fixtures"),
-          fetch("/api/predictions"),
-        ]);
-
-        if (!fixturesResponse.ok) {
-          throw new Error("Failed to fetch fixtures");
-        }
-
-        if (!predictionsResponse.ok) {
-          throw new Error("Failed to fetch predictions");
-        }
-
-        const [fixturesData, predictionsData] = await Promise.all([
-          fixturesResponse.json(),
-          predictionsResponse.json(),
-        ]);
-
-        setFixtures(fixturesData);
-        setPredictions(predictionsData);
+        await fetchDashboardData();
       } catch (err) {
         setError(err.message);
       } finally {
@@ -111,8 +119,8 @@ function Dashboard() {
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    loadDashboardData();
+  }, [fetchDashboardData]);
 
   const scores = [
     ["Ben Dover", "67 points"],
@@ -126,24 +134,24 @@ function Dashboard() {
     </button>
   ));
 
-  const fixtureById = fixtures.reduce((acc, fixture) => {
-    const fixtureId = fixture.id?.toLowerCase();
-    if (fixtureId) {
-      acc[fixtureId] = fixture;
-    }
-    return acc;
-  }, {});
-
-  const isFixtureScheduled = (fixture) => {
-    return fixture.matchStatus?.toLowerCase() === "scheduled";
+  const indexById = (items) => {
+    return items.reduce((acc, item) => {
+      const itemId = item.id?.toLowerCase();
+      if (itemId) {
+        acc[itemId] = item;
+      }
+      return acc;
+    }, {});
   };
+
+  const fixtureById = indexById(fixtures);
 
   const parsePredictionScore = (value) => {
     return value === "" ? null : Number(value);
   };
 
   const handlePredictionChange = ({ fixture, prediction, team, value }) => {
-    if (!prediction?.id || !isFixtureScheduled(fixture)) return;
+    if (!prediction?.id) return;
 
     setPredictionEdits((current) => {
       const existing = current[prediction.id] ?? {
@@ -166,29 +174,65 @@ function Dashboard() {
     const changedPredictions = Object.entries(predictionEdits);
     if (changedPredictions.length === 0 || savingPredictions) return;
 
+    const predictionSaveEndpoint = process.env.REACT_APP_PREDICTION_SAVE_ENDPOINT;
+
+    if (!predictionSaveEndpoint) {
+      setSaveError("Prediction save endpoint is not configured.");
+      return;
+    }
+
+    if (!predictionSaveEndpoint.toLowerCase().startsWith("https://")) {
+      setSaveError("Prediction save endpoint must be an HTTPS URL.");
+      return;
+    }
+
     setSavingPredictions(true);
     setSaveError(null);
 
     try {
-      await Promise.all(
-        changedPredictions.map(([predictionId, edit]) =>
-          fetch(`/api/predictions/${encodeURIComponent(predictionId)}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              fixtureId: edit.fixtureId,
-              team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
-              team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
-            }),
-          }).then((response) => {
-            if (!response.ok) {
-              throw new Error("Failed to save predictions");
-            }
-          })
-        )
-      );
+      const { fixtures: latestFixtures, predictions: latestPredictions } = await fetchDashboardData();
+      const latestFixtureById = indexById(latestFixtures);
+      const latestPredictionById = indexById(latestPredictions);
+
+      const payload = {
+        submittedAt: new Date().toISOString(),
+        submittedBy: account?.username ?? null,
+        predictions: changedPredictions.map(([predictionId, edit]) => {
+          const currentPrediction = latestPredictionById[predictionId.toLowerCase()] ?? null;
+          const fixtureId = currentPrediction?.fixtureId ?? edit.fixtureId;
+          const fixture = fixtureId ? latestFixtureById[fixtureId.toLowerCase()] : null;
+
+          return {
+            predictionId: currentPrediction?.id ?? predictionId,
+            predictionIdentifier: currentPrediction?.identifier ?? null,
+            predictionRecord: currentPrediction,
+            fixtureId,
+            fixtureRecord: fixture,
+            fixtureName: fixture?.title ?? null,
+            matchId: fixture?.matchId ?? null,
+            matchStatus: fixture?.matchStatus ?? null,
+            homeTeam: fixture?.homeTeam ?? null,
+            awayTeam: fixture?.awayTeam ?? null,
+            kickoff: fixture?.kickoff ?? null,
+            currentTeam1ScorePrediction: currentPrediction?.team1ScorePrediction ?? null,
+            currentTeam2ScorePrediction: currentPrediction?.team2ScorePrediction ?? null,
+            team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
+            team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
+          };
+        }),
+      };
+
+      const response = await fetch(predictionSaveEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save predictions");
+      }
 
       setPredictions((current) =>
         current.map((prediction) => {

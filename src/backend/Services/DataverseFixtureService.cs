@@ -102,7 +102,7 @@ public sealed class DataverseFixtureService
         var awayTeam = GetFirstString(item, "cr2ef_team2", "cr2ef_awayteam", "cr2ef_away") ?? "Away";
         var title = GetFirstString(item, "cr2ef_name", "name", "subject");
         var groupName = GetFirstString(item, "cr2ef_groupname", "groupname") ?? string.Empty;
-        var matchStatus = GetFirstString(item, "cr2ef_matchstatus", "matchstatus") ?? "scheduled";
+        var matchStatus = GetFirstString(item, "cr2ef_matchstatus", "cr2ef_MatchStatus");
         var kickoffText = GetFirstString(item, "cr2ef_kickofftime", "cr2ef_date@OData.Community.Display.V1.FormattedValue", "cr2ef_date", "scheduledstart");
         var homeTeamScoreText = GetFirstString(item, "cr2ef_team1score", "cr2ef_homescore");
         var awayTeamScoreText = GetFirstString(item, "cr2ef_team2score", "cr2ef_awayscore");

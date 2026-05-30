@@ -1,5 +1,7 @@
 using FixturePredictions.Models;
 using FixturePredictions.Services;
+using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,26 +29,51 @@ app.MapGet("/api/predictions", async (DataversePredictionService service, Cancel
     return Results.Ok(predictions);
 });
 
+app.MapPost("/api/predictions/submit", async (
+    JsonElement submission,
+    IConfiguration configuration,
+    IHttpClientFactory httpClientFactory,
+    ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    var endpoint = configuration["PredictionSave:Endpoint"] ?? configuration["REACT_APP_PREDICTION_SAVE_ENDPOINT"];
+
+    if (string.IsNullOrWhiteSpace(endpoint))
+    {
+        return Results.Problem("Prediction save endpoint is not configured.", statusCode: StatusCodes.Status500InternalServerError);
+    }
+
+    if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri) || endpointUri.Scheme != Uri.UriSchemeHttps)
+    {
+        return Results.Problem("Prediction save endpoint must be an HTTPS URL.", statusCode: StatusCodes.Status500InternalServerError);
+    }
+
+    var client = httpClientFactory.CreateClient();
+    using var content = new StringContent(submission.GetRawText(), Encoding.UTF8, "application/json");
+    var response = await client.PostAsync(endpointUri, content, cancellationToken);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        logger.LogWarning(
+            "Prediction save endpoint failed. Status={Status}. Body={Body}",
+            response.StatusCode,
+            responseBody);
+
+        return Results.Problem(
+            $"Prediction save endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.",
+            statusCode: StatusCodes.Status502BadGateway);
+    }
+
+    return Results.NoContent();
+});
+
 app.MapPatch("/api/predictions/{predictionId}", async (
     string predictionId,
     UpdatePredictionRequest update,
     DataversePredictionService predictionService,
-    DataverseFixtureService fixtureService,
     CancellationToken cancellationToken) =>
 {
-    var fixtures = await fixtureService.GetFixturesAsync(cancellationToken);
-    var fixture = fixtures.FirstOrDefault(f => string.Equals(f.Id, update.FixtureId, StringComparison.OrdinalIgnoreCase));
-
-    if (fixture is null)
-    {
-        return Results.NotFound("Linked fixture was not found.");
-    }
-
-    if (!string.Equals(fixture.MatchStatus, "scheduled", StringComparison.OrdinalIgnoreCase))
-    {
-        return Results.BadRequest("Predictions can only be updated while the linked fixture is scheduled.");
-    }
-
     await predictionService.UpdatePredictionAsync(
         predictionId,
         update.Team1ScorePrediction,

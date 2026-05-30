@@ -351,12 +351,6 @@
   box-shadow: 3px 3px 10px 0px rgba(0, 0, 0, 0.781);
 }
 
-.PredictionFixtureTileBox--unscheduled {
-  height: 110px;
-  box-shadow: 3px 3px 10px 0px rgba(253, 71, 71, 0.459);
-}
-
-.PredictionFixtureTileBox--unscheduled .ScorePrediction,
 .ScorePrediction:disabled {
   background: #e4e7eb;
   border-color: #c7ced6;
