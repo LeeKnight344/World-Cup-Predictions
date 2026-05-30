@@ -146,6 +146,11 @@ function Dashboard() {
   };
 
   const fixtureById = indexById(fixtures);
+  const userEmail = account?.username?.toLowerCase() ?? "";
+
+  const predictionsForUser = predictions.filter((prediction) => {
+    return userEmail && prediction.identifier?.toLowerCase().includes(userEmail);
+  });
 
   const parsePredictionScore = (value) => {
     return value === "" ? null : Number(value);
@@ -276,7 +281,7 @@ function Dashboard() {
   };
 
   const predictionFixturesByDay = Object.values(
-    predictions
+    predictionsForUser
       .map((prediction) => {
         const fixture = prediction.fixtureId
           ? fixtureById[prediction.fixtureId.toLowerCase()]
@@ -397,7 +402,7 @@ function Dashboard() {
             <div className="PredictionsBody">
               <div className="PredictionsFixtures">
                 <div className="PredictionFixturesBody">
-                  {predictions.length === 0 ? (
+                  {predictionsForUser.length === 0 ? (
                     <div className="loading">No predictions found</div>
                   ) : (
                     predictionFixturesByDay.map((g) => (
