@@ -74,13 +74,13 @@ function Dashboard() {
   const { accounts } = useMsal();
   const account = accounts[0];
   const [fixturesOnTop, setFixturesOnTop] = useState(true);
+  const [selectedStage, setSelectedStage] = useState("group");
   const [fixtures, setFixtures] = useState([]);
   const [predictions, setPredictions] = useState([]);
   const [predictionEdits, setPredictionEdits] = useState({});
   const [savingPredictions, setSavingPredictions] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [loadingPredictionsPage, setLoadingPredictionsPage] = useState(false);
-  const [selectedFixture, setSelectedFixture] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -123,15 +123,71 @@ function Dashboard() {
     loadDashboardData();
   }, [fetchDashboardData]);
 
-  const scores = [
-    ["Ben Dover", "67 points"],
-    ["John Dingle", "69 points"],
-  ];
+  const calculatePredictionScore = ({
+    homeTeamScore,
+    awayTeamScore,
+    team1ScorePrediction,
+    team2ScorePrediction,
+  }) => {
+    if (
+      homeTeamScore == null ||
+      awayTeamScore == null ||
+      team1ScorePrediction == null ||
+      team2ScorePrediction == null
+    ) {
+      return null;
+    }
+
+    if (homeTeamScore === team1ScorePrediction && awayTeamScore === team2ScorePrediction) {
+      return 5;
+    }
+
+    const actualDifference = homeTeamScore - awayTeamScore;
+    const predictedDifference = team1ScorePrediction - team2ScorePrediction;
+
+    if (actualDifference === predictedDifference) {
+      return 3;
+    }
+
+    if (
+      actualDifference !== 0 &&
+      predictedDifference !== 0 &&
+      Math.sign(actualDifference) === Math.sign(predictedDifference)
+    ) {
+      return 1;
+    }
+
+    return 0;
+  };
+
+  const getPredictionEmail = (identifier) => {
+    if (!identifier) return null;
+
+    const emailMatch = identifier.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    return emailMatch ? emailMatch[0].toLowerCase() : null;
+  };
+
+  const scores = Object.values(
+    predictions.reduce((acc, prediction) => {
+      const email = getPredictionEmail(prediction.identifier);
+      if (!email) return acc;
+
+      if (!acc[email]) {
+        acc[email] = {
+          name: email,
+          points: 0,
+        };
+      }
+
+      acc[email].points += prediction.score ?? 0;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
 
   const scoresList = scores.map((player) => (
-    <button key={player[0]} className="UserScoreTile">
-      <p className="Name">{player[0]}</p>
-      <p className="Points">{player[1]}</p>
+    <button key={player.name} className="UserScoreTile">
+      <p className="Name">{player.name}</p>
+      <p className="Points">{player.points} points</p>
     </button>
   ));
 
@@ -149,8 +205,17 @@ function Dashboard() {
   const userEmail = account?.username?.toLowerCase() ?? "";
 
   const predictionsForUser = predictions.filter((prediction) => {
-    return userEmail && prediction.identifier?.toLowerCase().includes(userEmail);
+    return userEmail && getPredictionEmail(prediction.identifier) === userEmail;
   });
+
+  const getFixtureStage = (fixture) => {
+    const matchId = Number(fixture?.matchId ?? 0);
+    return matchId > 72 ? "knockouts" : "group";
+  };
+
+  const isSelectedStageFixture = (fixture) => {
+    return getFixtureStage(fixture) === selectedStage;
+  };
 
   const parsePredictionScore = (value) => {
     return value === "" ? null : Number(value);
@@ -226,10 +291,19 @@ function Dashboard() {
           const currentPrediction = latestPredictionById[predictionId.toLowerCase()] ?? null;
           const fixtureId = currentPrediction?.fixtureId ?? edit.fixtureId;
           const fixture = fixtureId ? latestFixtureById[fixtureId.toLowerCase()] : null;
+          const team1ScorePrediction = parsePredictionScore(edit.team1ScorePrediction);
+          const team2ScorePrediction = parsePredictionScore(edit.team2ScorePrediction);
+          const score = calculatePredictionScore({
+            homeTeamScore: fixture?.homeTeamScore,
+            awayTeamScore: fixture?.awayTeamScore,
+            team1ScorePrediction,
+            team2ScorePrediction,
+          });
 
           return {
             predictionId: currentPrediction?.id ?? predictionId,
             predictionIdentifier: currentPrediction?.identifier ?? null,
+            predictionEmail: getPredictionEmail(currentPrediction?.identifier),
             predictionRecord: currentPrediction,
             fixtureId,
             fixtureRecord: fixture,
@@ -241,8 +315,9 @@ function Dashboard() {
             kickoff: fixture?.kickoff ?? null,
             currentTeam1ScorePrediction: currentPrediction?.team1ScorePrediction ?? null,
             currentTeam2ScorePrediction: currentPrediction?.team2ScorePrediction ?? null,
-            team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
-            team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
+            team1ScorePrediction,
+            team2ScorePrediction,
+            score,
           };
         }),
       };
@@ -269,6 +344,12 @@ function Dashboard() {
             ...prediction,
             team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
             team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
+            score: calculatePredictionScore({
+              homeTeamScore: latestFixtureById[edit.fixtureId?.toLowerCase()]?.homeTeamScore,
+              awayTeamScore: latestFixtureById[edit.fixtureId?.toLowerCase()]?.awayTeamScore,
+              team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
+              team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
+            }),
           };
         })
       );
@@ -294,10 +375,12 @@ function Dashboard() {
             homeTeam: prediction.fixtureName ?? "Fixture",
             awayTeam: "",
             kickoff: null,
+            matchId: prediction.matchId ?? 0,
             matchStatus: "",
           },
         };
       })
+      .filter((item) => isSelectedStageFixture(item.fixture))
       .sort((a, b) => {
         const aTime = a.fixture.kickoff ? new Date(a.fixture.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
         const bTime = b.fixture.kickoff ? new Date(b.fixture.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
@@ -315,6 +398,7 @@ function Dashboard() {
   const fixturesByDay = Object.values(
     fixtures
       .slice()
+      .filter(isSelectedStageFixture)
       .sort((a, b) => {
         const aTime = a.kickoff ? new Date(a.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
         const bTime = b.kickoff ? new Date(b.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
@@ -344,7 +428,6 @@ function Dashboard() {
         <div
           key={fixture.id ?? fixture.matchId ?? `${fixture.homeTeam}-${fixture.awayTeam}`}
           className="FixtureTile"
-          onClick={() => setSelectedFixture(fixture)}
         >
           <FixtureTile fixture={fixture} />
         </div>
@@ -397,13 +480,28 @@ function Dashboard() {
         >
           <div className="Groups">
             <p className="PredictionsTitle">Predictions</p>
-            <p className="StageTitle">Groups</p>
+            <div className="StageButtons" aria-label="Prediction stage">
+              <button
+                className={selectedStage === "group" ? "StageButton StageButtonActive" : "StageButton"}
+                onClick={() => setSelectedStage("group")}
+              >
+                Group Stage
+              </button>
+              <button
+                className={selectedStage === "knockouts" ? "StageButton StageButtonActive" : "StageButton"}
+                onClick={() => setSelectedStage("knockouts")}
+              >
+                Knockouts
+              </button>
+            </div>
 
             <div className="PredictionsBody">
               <div className="PredictionsFixtures">
                 <div className="PredictionFixturesBody">
                   {predictionsForUser.length === 0 ? (
                     <div className="loading">No predictions found</div>
+                  ) : predictionFixturesByDay.length === 0 ? (
+                    <div className="loading">No predictions found for this stage</div>
                   ) : (
                     predictionFixturesByDay.map((g) => (
                       <div className="MatchDayGroup" key={g.date?.toISOString() ?? "nodate"}>
@@ -456,6 +554,20 @@ function Dashboard() {
         >
           <div className="Fixtures">
             <p className="FixturesTitle">Fixtures</p>
+            <div className="StageButtons" aria-label="Fixture stage">
+              <button
+                className={selectedStage === "group" ? "StageButton StageButtonActive" : "StageButton"}
+                onClick={() => setSelectedStage("group")}
+              >
+                Group Stage
+              </button>
+              <button
+                className={selectedStage === "knockouts" ? "StageButton StageButtonActive" : "StageButton"}
+                onClick={() => setSelectedStage("knockouts")}
+              >
+                Knockouts
+              </button>
+            </div>
 
             {loading && <div className="loading">Loading fixtures…</div>}
 
@@ -463,6 +575,10 @@ function Dashboard() {
 
             {!loading && !error && fixtures.length === 0 && (
               <div className="loading">No fixtures found</div>
+            )}
+
+            {!loading && !error && fixtures.length > 0 && fixtureList.length === 0 && (
+              <div className="loading">No fixtures found for this stage</div>
             )}
 
             {!loading && !error && fixtures.length > 0 && fixtureList}

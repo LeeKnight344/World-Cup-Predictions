@@ -114,6 +114,44 @@
   margin-bottom: 10px;
 }
 
+.StageButtons {
+  display: inline-flex;
+  align-self: center;
+  border: 1px solid #c7ced6;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 6px 0 12px;
+  flex-shrink: 0;
+}
+
+.StageButton {
+  min-width: 130px;
+  height: 36px;
+  border: none;
+  border-right: 1px solid #c7ced6;
+  background: #ffffff;
+  color: #20343b;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.StageButton:last-child {
+  border-right: none;
+}
+
+.StageButton:hover {
+  background: #eef2f7;
+}
+
+.StageButtonActive {
+  background: #20343b;
+  color: #ffffff;
+}
+
+.StageButtonActive:hover {
+  background: #20343b;
+}
+
 .FixturesBody {
   display: flex;
   gap: 30px;
