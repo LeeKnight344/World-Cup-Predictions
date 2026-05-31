@@ -2,6 +2,7 @@ using FixturePredictions.Models;
 using FixturePredictions.Services;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,8 +49,10 @@ app.MapPost("/api/predictions/submit", async (
         return Results.Problem("Prediction save endpoint must be an HTTPS URL.", statusCode: StatusCodes.Status500InternalServerError);
     }
 
+    var enrichedSubmission = EnrichSubmissionWithScores(submission);
+
     var client = httpClientFactory.CreateClient();
-    using var content = new StringContent(submission.GetRawText(), Encoding.UTF8, "application/json");
+    using var content = new StringContent(enrichedSubmission, Encoding.UTF8, "application/json");
     var response = await client.PostAsync(endpointUri, content, cancellationToken);
 
     if (!response.IsSuccessStatusCode)
@@ -111,15 +114,83 @@ app.MapPatch("/api/predictions/{predictionId}", async (
     string predictionId,
     UpdatePredictionRequest update,
     DataversePredictionService predictionService,
+    DataverseFixtureService fixtureService,
     CancellationToken cancellationToken) =>
 {
+    int? score = null;
+    var fixtures = await fixtureService.GetFixturesAsync(cancellationToken);
+    var fixture = fixtures.FirstOrDefault(f => string.Equals(f.Id, update.FixtureId, StringComparison.OrdinalIgnoreCase));
+
+    if (fixture is not null)
+    {
+        score = PredictionScoring.CalculateScore(
+            fixture.HomeTeamScore,
+            fixture.AwayTeamScore,
+            update.Team1ScorePrediction,
+            update.Team2ScorePrediction);
+    }
+
     await predictionService.UpdatePredictionAsync(
         predictionId,
         update.Team1ScorePrediction,
         update.Team2ScorePrediction,
+        score,
         cancellationToken);
 
     return Results.NoContent();
 });
 
 app.Run();
+
+static string EnrichSubmissionWithScores(JsonElement submission)
+{
+    var node = JsonNode.Parse(submission.GetRawText());
+    if (node is not JsonObject payload ||
+        payload["predictions"] is not JsonArray predictions)
+    {
+        return submission.GetRawText();
+    }
+
+    foreach (var predictionNode in predictions)
+    {
+        if (predictionNode is not JsonObject prediction)
+        {
+            continue;
+        }
+
+        var fixtureRecord = prediction["fixtureRecord"] as JsonObject;
+        var actualTeam1Score = GetNullableInt(fixtureRecord, "homeTeamScore");
+        var actualTeam2Score = GetNullableInt(fixtureRecord, "awayTeamScore");
+        var predictedTeam1Score = GetNullableInt(prediction, "team1ScorePrediction");
+        var predictedTeam2Score = GetNullableInt(prediction, "team2ScorePrediction");
+        var score = PredictionScoring.CalculateScore(
+            actualTeam1Score,
+            actualTeam2Score,
+            predictedTeam1Score,
+            predictedTeam2Score);
+
+        prediction["score"] = score is null ? null : JsonValue.Create(score.Value);
+    }
+
+    return payload.ToJsonString();
+}
+
+static int? GetNullableInt(JsonObject? obj, string propertyName)
+{
+    if (obj is null || obj[propertyName] is not JsonValue value)
+    {
+        return null;
+    }
+
+    if (value.TryGetValue<int>(out var intValue))
+    {
+        return intValue;
+    }
+
+    if (value.TryGetValue<string>(out var stringValue) && int.TryParse(stringValue, out var parsed))
+    {
+        return parsed;
+    }
+
+    return null;
+}

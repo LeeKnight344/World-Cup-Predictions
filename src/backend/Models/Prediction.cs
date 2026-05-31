@@ -6,5 +6,6 @@ public sealed record Prediction(
     string? FixtureId,
     string? FixtureName,
     int? Team1ScorePrediction,
-    int? Team2ScorePrediction
+    int? Team2ScorePrediction,
+    int? Score
 );
