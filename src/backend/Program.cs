@@ -124,8 +124,12 @@ app.MapPatch("/api/predictions/{predictionId}", async (
     if (fixture is not null)
     {
         score = PredictionScoring.CalculateScore(
+            fixture.MatchStatus,
             fixture.HomeTeamScore,
             fixture.AwayTeamScore,
+            fixture.HomeTeamPenaltyScore,
+            fixture.AwayTeamPenaltyScore,
+            fixture.PenaltyBoolean,
             update.Team1ScorePrediction,
             update.Team2ScorePrediction);
     }
@@ -161,11 +165,19 @@ static string EnrichSubmissionWithScores(JsonElement submission)
         var fixtureRecord = prediction["fixtureRecord"] as JsonObject;
         var actualTeam1Score = GetNullableInt(fixtureRecord, "homeTeamScore");
         var actualTeam2Score = GetNullableInt(fixtureRecord, "awayTeamScore");
+        var actualTeam1PenaltyScore = GetNullableInt(fixtureRecord, "homeTeamPenaltyScore");
+        var actualTeam2PenaltyScore = GetNullableInt(fixtureRecord, "awayTeamPenaltyScore");
+        var penaltyBoolean = GetBoolean(fixtureRecord, "penaltyBoolean");
+        var matchStatus = GetString(fixtureRecord, "matchStatus");
         var predictedTeam1Score = GetNullableInt(prediction, "team1ScorePrediction");
         var predictedTeam2Score = GetNullableInt(prediction, "team2ScorePrediction");
         var score = PredictionScoring.CalculateScore(
+            matchStatus,
             actualTeam1Score,
             actualTeam2Score,
+            actualTeam1PenaltyScore,
+            actualTeam2PenaltyScore,
+            penaltyBoolean,
             predictedTeam1Score,
             predictedTeam2Score);
 
@@ -193,4 +205,34 @@ static int? GetNullableInt(JsonObject? obj, string propertyName)
     }
 
     return null;
+}
+
+static bool GetBoolean(JsonObject? obj, string propertyName)
+{
+    if (obj is null || obj[propertyName] is not JsonValue value)
+    {
+        return false;
+    }
+
+    if (value.TryGetValue<bool>(out var boolValue))
+    {
+        return boolValue;
+    }
+
+    if (value.TryGetValue<string>(out var stringValue) && bool.TryParse(stringValue, out var parsed))
+    {
+        return parsed;
+    }
+
+    return false;
+}
+
+static string? GetString(JsonObject? obj, string propertyName)
+{
+    if (obj is null || obj[propertyName] is not JsonValue value)
+    {
+        return null;
+    }
+
+    return value.TryGetValue<string>(out var stringValue) ? stringValue : value.ToString();
 }

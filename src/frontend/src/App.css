@@ -6,6 +6,85 @@
   overflow: hidden;
 }
 
+.auth-header {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 22px rgba(32, 52, 59, 0.12);
+  box-sizing: border-box;
+}
+
+.auth-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  background: #20343b;
+  color: #ffffff;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.auth-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.auth-user {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.auth-label {
+  color: #64717a;
+  font-size: 0.72rem;
+}
+
+.auth-email {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #20343b;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.SignOutButton {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #c7ced6;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #20343b;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.SignOutButton:hover {
+  background: #eef2f7;
+}
+
+.SignOutButton:active {
+  background: #dfe7ee;
+}
+
  .LoginHeader {
   position: relative;
   width: 100%;

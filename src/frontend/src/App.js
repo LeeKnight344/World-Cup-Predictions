@@ -27,18 +27,79 @@ function SignOutButton() {
 
   return (
     <button className="SignOutButton" onClick={() => instance.logoutRedirect()}>
-      Sign out
+      Sign Out
     </button>
   );
 }
 
 function UserHeader() {
-  const { accounts } = useMsal();
+  const { accounts, instance } = useMsal();
   const account = accounts[0];
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
+
+  useEffect(() => {
+    let objectUrl = null;
+    let cancelled = false;
+
+    const loadProfilePhoto = async () => {
+      if (!account) {
+        setProfilePhotoUrl(null);
+        return;
+      }
+
+      try {
+        const tokenResponse = await instance.acquireTokenSilent({
+          ...loginRequest,
+          account,
+        });
+
+        const response = await fetch("https://graph.microsoft.com/v1.0/me/photo/$value", {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          setProfilePhotoUrl(null);
+          return;
+        }
+
+        const photoBlob = await response.blob();
+        objectUrl = URL.createObjectURL(photoBlob);
+
+        if (!cancelled) {
+          setProfilePhotoUrl(objectUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setProfilePhotoUrl(null);
+        }
+      }
+    };
+
+    loadProfilePhoto();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [account, instance]);
 
   return (
     <div className="auth-header">
-      <span>Signed in as {account?.username}</span>
+      <div className="auth-avatar" aria-hidden="true">
+        {profilePhotoUrl ? (
+          <img src={profilePhotoUrl} alt="" />
+        ) : (
+          account?.username?.charAt(0)?.toUpperCase() ?? "U"
+        )}
+      </div>
+      <div className="auth-user">
+        <span className="auth-label">Signed in as</span>
+        <span className="auth-email">{account?.username}</span>
+      </div>
       <SignOutButton />
     </div>
   );
@@ -124,11 +185,19 @@ function Dashboard() {
   }, [fetchDashboardData]);
 
   const calculatePredictionScore = ({
+    matchStatus,
     homeTeamScore,
     awayTeamScore,
+    homeTeamPenaltyScore,
+    awayTeamPenaltyScore,
+    penaltyBoolean,
     team1ScorePrediction,
     team2ScorePrediction,
   }) => {
+    if (!["complete", "completed"].includes(String(matchStatus ?? "").toLowerCase())) {
+      return null;
+    }
+
     if (
       homeTeamScore == null ||
       awayTeamScore == null ||
@@ -144,15 +213,22 @@ function Dashboard() {
 
     const actualDifference = homeTeamScore - awayTeamScore;
     const predictedDifference = team1ScorePrediction - team2ScorePrediction;
+    const actualWinnerDifference =
+      actualDifference !== 0 ||
+      !penaltyBoolean ||
+      homeTeamPenaltyScore == null ||
+      awayTeamPenaltyScore == null
+        ? actualDifference
+        : homeTeamPenaltyScore - awayTeamPenaltyScore;
 
     if (actualDifference === predictedDifference) {
       return 3;
     }
 
     if (
-      actualDifference !== 0 &&
+      actualWinnerDifference !== 0 &&
       predictedDifference !== 0 &&
-      Math.sign(actualDifference) === Math.sign(predictedDifference)
+      Math.sign(actualWinnerDifference) === Math.sign(predictedDifference)
     ) {
       return 1;
     }
@@ -294,8 +370,12 @@ function Dashboard() {
           const team1ScorePrediction = parsePredictionScore(edit.team1ScorePrediction);
           const team2ScorePrediction = parsePredictionScore(edit.team2ScorePrediction);
           const score = calculatePredictionScore({
+            matchStatus: fixture?.matchStatus,
             homeTeamScore: fixture?.homeTeamScore,
             awayTeamScore: fixture?.awayTeamScore,
+            homeTeamPenaltyScore: fixture?.homeTeamPenaltyScore,
+            awayTeamPenaltyScore: fixture?.awayTeamPenaltyScore,
+            penaltyBoolean: fixture?.penaltyBoolean,
             team1ScorePrediction,
             team2ScorePrediction,
           });
@@ -345,8 +425,12 @@ function Dashboard() {
             team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
             team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
             score: calculatePredictionScore({
+              matchStatus: latestFixtureById[edit.fixtureId?.toLowerCase()]?.matchStatus,
               homeTeamScore: latestFixtureById[edit.fixtureId?.toLowerCase()]?.homeTeamScore,
               awayTeamScore: latestFixtureById[edit.fixtureId?.toLowerCase()]?.awayTeamScore,
+              homeTeamPenaltyScore: latestFixtureById[edit.fixtureId?.toLowerCase()]?.homeTeamPenaltyScore,
+              awayTeamPenaltyScore: latestFixtureById[edit.fixtureId?.toLowerCase()]?.awayTeamPenaltyScore,
+              penaltyBoolean: latestFixtureById[edit.fixtureId?.toLowerCase()]?.penaltyBoolean,
               team1ScorePrediction: parsePredictionScore(edit.team1ScorePrediction),
               team2ScorePrediction: parsePredictionScore(edit.team2ScorePrediction),
             }),
@@ -376,6 +460,9 @@ function Dashboard() {
             awayTeam: "",
             kickoff: null,
             matchId: prediction.matchId ?? 0,
+            homeTeamPenaltyScore: null,
+            awayTeamPenaltyScore: null,
+            penaltyBoolean: false,
             matchStatus: "",
           },
         };

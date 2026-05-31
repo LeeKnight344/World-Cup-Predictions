@@ -106,6 +106,9 @@ public sealed class DataverseFixtureService
         var kickoffText = GetFirstString(item, "cr2ef_kickofftime", "cr2ef_date@OData.Community.Display.V1.FormattedValue", "cr2ef_date", "scheduledstart");
         var homeTeamScoreText = GetFirstString(item, "cr2ef_team1score", "cr2ef_homescore");
         var awayTeamScoreText = GetFirstString(item, "cr2ef_team2score", "cr2ef_awayscore");
+        var homeTeamPenaltyScoreText = GetFirstString(item, "ann_team1penaltyscore", "ann_Team1PenaltyScore");
+        var awayTeamPenaltyScoreText = GetFirstString(item, "ann_team2penaltyscore", "ann_Team2PenaltyScore");
+        var penaltyBooleanText = GetFirstString(item, "ann_penaltyboolean", "ann_PenaltyBoolean");
 
         var matchId = int.TryParse(matchIdText, out var parsed) ? parsed : 0;
         
@@ -127,6 +130,20 @@ public sealed class DataverseFixtureService
             awayTeamScore = awayScore;
         }
 
+        int? homeTeamPenaltyScore = null;
+        if (int.TryParse(homeTeamPenaltyScoreText, out var homePenaltyScore))
+        {
+            homeTeamPenaltyScore = homePenaltyScore;
+        }
+
+        int? awayTeamPenaltyScore = null;
+        if (int.TryParse(awayTeamPenaltyScoreText, out var awayPenaltyScore))
+        {
+            awayTeamPenaltyScore = awayPenaltyScore;
+        }
+
+        var penaltyBoolean = bool.TryParse(penaltyBooleanText, out var parsedPenaltyBoolean) && parsedPenaltyBoolean;
+
         return new Fixture(
             id,
             matchId,
@@ -135,6 +152,9 @@ public sealed class DataverseFixtureService
             kickoff,
             homeTeamScore,
             awayTeamScore,
+            homeTeamPenaltyScore,
+            awayTeamPenaltyScore,
+            penaltyBoolean,
             groupName,
             matchStatus,
             title
