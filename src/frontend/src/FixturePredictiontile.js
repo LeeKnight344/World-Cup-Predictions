@@ -11,6 +11,7 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
     ? kickoff.toLocaleTimeString(undefined, { timeStyle: "short" })
     : "Time";
   const status = fixture.matchStatus ?? "";
+  const matchId = fixture.matchId != null ? `Match ${fixture.matchId}` : null;
   const homeScorePrediction = value.team1ScorePrediction ?? prediction?.team1ScorePrediction ?? 0;
   const awayScorePrediction = value.team2ScorePrediction ?? prediction?.team2ScorePrediction ?? 0;
 
@@ -36,6 +37,7 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
             <div className = "PredictionFixtureTimes">
                 {kickoffDate} {kickoffTime}
             </div>
+            {matchId && <div className="PredictionFixtureMatchId">{matchId}</div>}
             <div className = "PredictionFixtureStatus">{status || "Status"}</div>
         </div>
         <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={awayScorePrediction} onChange = {handlePredictionInput("team2")}></input>

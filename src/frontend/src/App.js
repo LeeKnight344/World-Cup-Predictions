@@ -435,15 +435,15 @@ function Dashboard() {
                     ))
                   )}
                 </div>
-                <button
+                
+              </div>
+              <button
                     className="SaveButton"
                     disabled={Object.keys(predictionEdits).length === 0 || savingPredictions}
                     onClick={savePredictionChanges}
                   >
                     {savingPredictions ? "Saving" : "Save"}
-                  </button>
-              </div>
-              
+              </button>
             </div>
           </div>
         </div>
