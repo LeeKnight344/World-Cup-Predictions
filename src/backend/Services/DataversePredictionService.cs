@@ -215,6 +215,7 @@ public sealed class DataversePredictionService
         return new[]
             {
                 _options.PredictionScoreColumnName,
+                "ann_totalscore",
                 "ann_score",
                 "ann_predictionscore",
                 "score",
