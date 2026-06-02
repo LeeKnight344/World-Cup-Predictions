@@ -459,7 +459,27 @@
   height: 110px;
   padding: 24px 18px;
   border-radius: 12px;
+  box-sizing: border-box;
   cursor: default;
+  border-left: 5px solid transparent;
+}
+
+.FixtureTileBox.status-live,
+.PredictionFixtureTileBox.status-live {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+}
+
+.FixtureTileBox.status-scheduled,
+.PredictionFixtureTileBox.status-scheduled {
+  background: #fff7ed;
+  border-left-color: #f97316;
+}
+
+.FixtureTileBox.status-complete,
+.PredictionFixtureTileBox.status-complete {
+  background: #fef2f2;
+  border-left-color: #ef4444;
 }
 
 .PredictionFixtureTileHost {
@@ -571,8 +591,28 @@ input[type=number] {
   color: #4a5568;
   text-align: center;
   margin-top: 4px;
-  width: 100%;
+  width: fit-content;
+  min-width: 76px;
+  align-self: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #edf2f7;
   text-transform: capitalize;
+}
+
+.PredictionFixtureStatus.status-live {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.PredictionFixtureStatus.status-scheduled {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.PredictionFixtureStatus.status-complete {
+  color: #991b1b;
+  background: #fee2e2;
 }
 
 .FixturesTitle {

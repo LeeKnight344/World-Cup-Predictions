@@ -13,9 +13,14 @@ export function FixtureTile({ fixture = {} }) {
 
   const homeScore = fixture.homeTeamScore ?? 0;
   const awayScore = fixture.awayTeamScore ?? 0;
+  const status = fixture.matchStatus ?? "";
+  const normalizedStatus = status.trim().toLowerCase();
+  const statusClass = ["live", "scheduled", "complete", "completed"].includes(normalizedStatus)
+    ? `status-${normalizedStatus === "completed" ? "complete" : normalizedStatus}`
+    : "";
 
   return (
-    <div className="FixtureTileBox">
+    <div className={`FixtureTileBox ${statusClass}`}>
       <div className="ScorePrediction" aria-hidden="true">{homeScore}</div>
       <div className="PredictionFixtureDetails">
         <div className="PredictionFixtureTeams">
@@ -26,7 +31,7 @@ export function FixtureTile({ fixture = {} }) {
         <div className="PredictionFixtureTimes">
           {kickoffDate} {kickoffTime}
         </div>
-        <div className="PredictionFixtureStatus">{fixture.matchStatus ?? "Status"}</div>
+        <div className={`PredictionFixtureStatus ${statusClass}`}>{status || "Status"}</div>
       </div>
       <div className="ScorePrediction" aria-hidden="true">{awayScore}</div>
     </div>

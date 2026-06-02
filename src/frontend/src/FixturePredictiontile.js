@@ -11,7 +11,11 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
     ? kickoff.toLocaleTimeString(undefined, { timeStyle: "short" })
     : "Time";
   const status = fixture.matchStatus ?? "";
-  const predictionsEnabled = status.trim().toLowerCase() === "scheduled";
+  const normalizedStatus = status.trim().toLowerCase();
+  const statusClass = ["live", "scheduled", "complete", "completed"].includes(normalizedStatus)
+    ? `status-${normalizedStatus === "completed" ? "complete" : normalizedStatus}`
+    : "";
+  const predictionsEnabled = normalizedStatus === "scheduled";
   const matchId = fixture.matchId != null ? `Match ${fixture.matchId}` : null;
   const homeScorePrediction = value.team1ScorePrediction ?? prediction?.team1ScorePrediction ?? 0;
   const awayScorePrediction = value.team2ScorePrediction ?? prediction?.team2ScorePrediction ?? 0;
@@ -29,7 +33,7 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
   };
 
   return (
-    <div className="PredictionFixtureTileBox">
+    <div className={`PredictionFixtureTileBox ${statusClass}`}>
         <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={homeScorePrediction} disabled={!predictionsEnabled} onChange = {handlePredictionInput("team1")}></input>
         <div className = "PredictionFixtureDetails">
             <div className = "PredictionFixtureTeams">
@@ -41,7 +45,7 @@ export function FixturePredictionTile({ fixture = {}, prediction = null, value =
                 {kickoffDate} {kickoffTime}
             </div>
             {matchId && <div className="PredictionFixtureMatchId">{matchId}</div>}
-            <div className = "PredictionFixtureStatus">{status || "Status"}</div>
+            <div className = {`PredictionFixtureStatus ${statusClass}`}>{status || "Status"}</div>
         </div>
         <input className = "ScorePrediction" type = "number" inputMode = "numeric" pattern = "[0-9]*" step = "1" min = "0" value={awayScorePrediction} disabled={!predictionsEnabled} onChange = {handlePredictionInput("team2")}></input>
     </div>
