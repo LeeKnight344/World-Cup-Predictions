@@ -1,5 +1,6 @@
 # Dataverse Fixture Predictions ASP.NET Container App
 
+test
 A Dockerized ASP.NET Core 8 app that reads fixtures from Dataverse and displays a two-column fixtures/predictions dashboard.
 
 ## Dataverse assumptions
