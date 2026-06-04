@@ -17,5 +17,5 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build & Push the Docker image
       run: |
-        docker build . -t ghcr.io/leeknight344/worldcuppredictions-fixture-predictions:$(date +%s)
-        docker push ghcr.io/leeknight344/worldcuppredictions-fixture-predictions:$(date +%s)
+        docker build . -t ghcr.io/leeknight344/worldcuppredictions-fixture-predictions:${{ github.sha }}
+        docker push ghcr.io/leeknight344/worldcuppredictions-fixture-predictions:${{ github.sha }}
