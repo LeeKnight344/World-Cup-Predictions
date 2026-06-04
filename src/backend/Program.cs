@@ -13,6 +13,23 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+app.MapGet("/runtime-config.js", (IConfiguration configuration) =>
+{
+    var config = new Dictionary<string, string?>
+    {
+        ["REACT_APP_ENTRA_CLIENT_ID"] = configuration["REACT_APP_ENTRA_CLIENT_ID"],
+        ["REACT_APP_ENTRA_TENANT_ID"] = configuration["REACT_APP_ENTRA_TENANT_ID"],
+        ["REACT_APP_ENTRA_REDIRECT_URI"] = configuration["REACT_APP_ENTRA_REDIRECT_URI"],
+        ["REACT_APP_PREDICTION_SAVE_ENDPOINT"] = configuration["REACT_APP_PREDICTION_SAVE_ENDPOINT"],
+    };
+
+    var json = JsonSerializer.Serialize(config);
+
+    return Results.Text(
+        $"window.__APP_CONFIG__ = {json};",
+        "application/javascript");
+});
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapHealthChecks("/health");
