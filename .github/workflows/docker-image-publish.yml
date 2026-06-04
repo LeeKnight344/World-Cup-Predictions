@@ -1,0 +1,21 @@
+name: Docker Image CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build & Push the Docker image
+      run: |
+        docker build . -t ghcr.io/leeknight344/worldcuppredictions-fixture-predictions:$(date +%s)
+        docker push ghcr.io/leeknight344/worldcuppredictions-fixture-predictions:$(date +%s)
