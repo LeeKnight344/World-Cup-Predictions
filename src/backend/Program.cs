@@ -3,7 +3,6 @@ using FixturePredictions.Services;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-//test
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<DataverseOptions>(builder.Configuration.GetSection("Dataverse"));
