@@ -18,7 +18,44 @@ param keyvault_name string
 param container_instance_dns_label string
 
 var container_instance_fqdn = '${container_instance_dns_label}.${resourceGroup().location}.azurecontainer.io'
-var entra_redirect_uri = 'http://${container_instance_fqdn}:8080/'
+var entra_redirect_uri = 'https://${container_instance_fqdn}/'
+var nginx_config = '''
+user nginx;
+worker_processes auto;
+
+events {
+  worker_connections 1024;
+}
+
+pid /var/run/nginx.pid;
+
+http {
+  server {
+    listen [::]:443 ssl;
+    listen 443 ssl;
+
+    server_name localhost;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 24h;
+
+    ssl_certificate /etc/nginx/ssl.crt;
+    ssl_certificate_key /etc/nginx/ssl.key;
+
+    location / {
+      proxy_pass http://localhost:8080;
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto https;
+    }
+  }
+}
+'''
 
 resource keyvault 'Microsoft.KeyVault/vaults@2025-05-01' existing = {
   name: keyvault_name
@@ -106,8 +143,42 @@ resource container_instance 'Microsoft.ContainerInstance/containerGroups@2025-09
           }
         }
       }
+      {
+        name: 'nginx-tls-sidecar'
+        properties: {
+          image: 'mcr.microsoft.com/oss/nginx/nginx:1.15.5-alpine'
+          ports: [
+            {
+              protocol: 'TCP'
+              port: 443
+            }
+          ]
+          volumeMounts: [
+            {
+              name: 'nginx-config'
+              mountPath: '/etc/nginx'
+            }
+          ]
+          resources: {
+            requests: {
+              memoryInGB: json('1')
+              cpu: json('1')
+            }
+          }
+        }
+      }
     ]
     initContainers: []
+    volumes: [
+      {
+        name: 'nginx-config'
+        secret: {
+          'nginx.conf': base64(nginx_config)
+          'ssl.crt': loadFileAsBase64('../../../certs/ssl.crt')
+          'ssl.key': loadFileAsBase64('../../../certs/ssl.key')
+        }
+      }
+    ]
     imageRegistryCredentials: [
       {
         server: 'ghcr.io'
@@ -120,7 +191,7 @@ resource container_instance 'Microsoft.ContainerInstance/containerGroups@2025-09
       ports: [
         {
           protocol: 'TCP'
-          port: 8080
+          port: 443
         }
       ]
       type: 'Public'
@@ -135,34 +206,34 @@ output container_instance_fqdn string = container_instance.properties.ipAddress.
 output entra_redirect_uri string = entra_redirect_uri
 
 
-resource roleDefinitionKeyVaultCertUser 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
-  name: 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba'
-  scope: subscription()
-}
+// resource roleDefinitionKeyVaultCertUser 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
+//   name: 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba'
+//   scope: subscription()
+// }
 
-resource roleDefinitionKeyVaultSecretsUser 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
-  name: '4633458b-17de-408a-b874-0445c86b69e6'
-  scope: subscription()
-}
+// resource roleDefinitionKeyVaultSecretsUser 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
+//   name: '4633458b-17de-408a-b874-0445c86b69e6'
+//   scope: subscription()
+// }
 
-resource keyVaultCertUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().name, container_instance_name, 'keyVaultCertUser')
-  scope: keyvault
-  properties: {
-    description: container_instance_name
-    principalId: container_instance.identity.principalId
-    roleDefinitionId: roleDefinitionKeyVaultCertUser.id
-    principalType: 'ServicePrincipal'
-  }
-}
+// resource keyVaultCertUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+//   name: guid(resourceGroup().name, container_instance_name, 'keyVaultCertUser')
+//   scope: keyvault
+//   properties: {
+//     description: container_instance_name
+//     principalId: container_instance.identity.principalId
+//     roleDefinitionId: roleDefinitionKeyVaultCertUser.id
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
-resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().name, container_instance_name, 'keyVaultSecretsUser')
-  scope: keyvault
-  properties: {
-    description: container_instance_name
-    principalId: container_instance.identity.principalId
-    roleDefinitionId: roleDefinitionKeyVaultSecretsUser.id
-    principalType: 'ServicePrincipal'
-  }
-}
+// resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+//   name: guid(resourceGroup().name, container_instance_name, 'keyVaultSecretsUser')
+//   scope: keyvault
+//   properties: {
+//     description: container_instance_name
+//     principalId: container_instance.identity.principalId
+//     roleDefinitionId: roleDefinitionKeyVaultSecretsUser.id
+//     principalType: 'ServicePrincipal'
+//   }
+// }
