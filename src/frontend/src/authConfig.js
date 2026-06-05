@@ -1,24 +1,28 @@
 import { LogLevel } from "@azure/msal-browser";
 
-export const msalConfig = {
-  auth: {
-    clientId: process.env.REACT_APP_ENTRA_CLIENT_ID,
-    authority: `https://login.microsoftonline.com/${process.env.REACT_APP_ENTRA_TENANT_ID}`,
-    redirectUri: process.env.REACT_APP_ENTRA_REDIRECT_URI,
-    postLogoutRedirectUri: process.env.REACT_APP_ENTRA_REDIRECT_URI,
-  },
-  cache: {
-    cacheLocation: "sessionStorage",
-    storeAuthStateInCookie: false,
-  },
-  system: {
-    loggerOptions: {
-      loggerCallback: (_level, message, containsPii) => {
-        if (!containsPii) console.log(message);
-      },
-      logLevel: LogLevel.Warning,
+export const createMsalConfig = ({ entraClientId, entraTenantId, entraRedirectUri }) => {
+  const redirectUri = entraRedirectUri || `${window.location.origin}/`;
+
+  return {
+    auth: {
+      clientId: entraClientId,
+      authority: `https://login.microsoftonline.com/${entraTenantId}`,
+      redirectUri,
+      postLogoutRedirectUri: redirectUri,
     },
-  },
+    cache: {
+      cacheLocation: "sessionStorage",
+      storeAuthStateInCookie: false,
+    },
+    system: {
+      loggerOptions: {
+        loggerCallback: (_level, message, containsPii) => {
+          if (!containsPii) console.log(message);
+        },
+        logLevel: LogLevel.Warning,
+      },
+    },
+  };
 };
 
 export const loginRequest = {

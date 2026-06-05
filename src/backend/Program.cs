@@ -17,6 +17,27 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapHealthChecks("/health");
 
+app.MapGet("/api/client-config", (IConfiguration configuration) =>
+{
+    var clientId = configuration["Entra:ClientId"] ?? configuration["REACT_APP_ENTRA_CLIENT_ID"];
+    var tenantId = configuration["Entra:TenantId"] ?? configuration["REACT_APP_ENTRA_TENANT_ID"];
+    var redirectUri = configuration["Entra:RedirectUri"] ?? configuration["REACT_APP_ENTRA_REDIRECT_URI"];
+
+    if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(tenantId))
+    {
+        return Results.Problem(
+            "Client authentication is not configured.",
+            statusCode: StatusCodes.Status500InternalServerError);
+    }
+
+    return Results.Ok(new
+    {
+        entraClientId = clientId,
+        entraTenantId = tenantId,
+        entraRedirectUri = redirectUri
+    });
+});
+
 app.MapGet("/api/fixtures", async (DataverseFixtureService service, CancellationToken cancellationToken) =>
 {
     var fixtures = await service.GetFixturesAsync(cancellationToken);
