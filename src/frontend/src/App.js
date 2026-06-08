@@ -236,16 +236,32 @@ function Dashboard() {
     return 0;
   };
 
-  const getPredictionEmail = (identifier) => {
-    if (!identifier) return null;
+  // Pull every email-looking token out of an identifier. The local-part class
+  // is greedy and shares characters (letters, digits, '.', '-', '_', '+', '%')
+  // with text that may be glued to the email in the identifier (e.g.
+  // "Match12-john.smith@annata.net"). Anchoring the start of the local part to
+  // a non-local-part character (or string boundary) prevents the regex from
+  // swallowing that prefix and returning a bogus address.
+  const EMAIL_TOKEN_REGEX = /(?:^|[^A-Z0-9._%+-])([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})(?![A-Z0-9.-])/gi;
 
-    const emailMatch = identifier.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    return emailMatch ? emailMatch[0].toLowerCase() : null;
+  const getPredictionEmails = (identifier) => {
+    if (!identifier) return [];
+
+    const matches = [];
+    for (const match of identifier.matchAll(EMAIL_TOKEN_REGEX)) {
+      matches.push(match[1].toLowerCase());
+    }
+    return matches;
+  };
+
+  const identifierMatchesEmail = (identifier, email) => {
+    if (!identifier || !email) return false;
+    return getPredictionEmails(identifier).includes(email);
   };
 
   const scores = Object.values(
     predictions.reduce((acc, prediction) => {
-      const email = getPredictionEmail(prediction.identifier);
+      const [email] = getPredictionEmails(prediction.identifier);
       if (!email) return acc;
 
       if (!acc[email]) {
@@ -281,7 +297,7 @@ function Dashboard() {
   const userEmail = account?.username?.toLowerCase() ?? "";
 
   const predictionsForUser = predictions.filter((prediction) => {
-    return userEmail && getPredictionEmail(prediction.identifier) === userEmail;
+    return userEmail && identifierMatchesEmail(prediction.identifier, userEmail);
   });
 
   const getFixtureStage = (fixture) => {
@@ -383,7 +399,7 @@ function Dashboard() {
           return {
             predictionId: currentPrediction?.id ?? predictionId,
             predictionIdentifier: currentPrediction?.identifier ?? null,
-            predictionEmail: getPredictionEmail(currentPrediction?.identifier),
+            predictionEmail: getPredictionEmails(currentPrediction?.identifier)[0] ?? null,
             predictionRecord: currentPrediction,
             fixtureId,
             fixtureRecord: fixture,
