@@ -36,38 +36,52 @@ public sealed class DataversePredictionService
         {
             var select = Uri.EscapeDataString(GetPredictionSelectColumns(scoreColumnName));
             var requestUri = $"{baseUrl}/api/data/v9.2/{entitySet}?$select={select}";
+            var predictions = new List<Prediction>();
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            request.Headers.Add("OData-MaxVersion", "4.0");
-            request.Headers.Add("OData-Version", "4.0");
-            request.Headers.Add("Prefer", "odata.include-annotations=OData.Community.Display.V1.FormattedValue");
-
-            using var response = await client.SendAsync(request, cancellationToken);
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
+            while (!string.IsNullOrWhiteSpace(requestUri))
             {
-                if (scoreColumnName is not null && IsMissingPropertyResponse(body))
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                request.Headers.Add("OData-MaxVersion", "4.0");
+                request.Headers.Add("OData-Version", "4.0");
+                request.Headers.Add(
+                    "Prefer",
+                    "odata.include-annotations=OData.Community.Display.V1.FormattedValue,odata.maxpagesize=5000");
+
+                using var response = await client.SendAsync(request, cancellationToken);
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning(
-                        "Dataverse did not recognise prediction score column '{ColumnName}'. Trying the next candidate.",
-                        scoreColumnName);
-                    continue;
+                    if (scoreColumnName is not null && IsMissingPropertyResponse(body))
+                    {
+                        _logger.LogWarning(
+                            "Dataverse did not recognise prediction score column '{ColumnName}'. Trying the next candidate.",
+                            scoreColumnName);
+                        break;
+                    }
+
+                    _logger.LogWarning("Dataverse prediction request failed. Status={Status}. Body={Body}", response.StatusCode, body);
+                    throw new InvalidOperationException($"Dataverse prediction request failed: {(int)response.StatusCode} {response.ReasonPhrase}");
                 }
 
-                _logger.LogWarning("Dataverse prediction request failed. Status={Status}. Body={Body}", response.StatusCode, body);
-                throw new InvalidOperationException($"Dataverse prediction request failed: {(int)response.StatusCode} {response.ReasonPhrase}");
+                using var document = JsonDocument.Parse(body);
+                if (!document.RootElement.TryGetProperty("value", out var values) || values.ValueKind != JsonValueKind.Array)
+                {
+                    return Array.Empty<Prediction>();
+                }
+
+                predictions.AddRange(values.EnumerateArray().Select(item => MapPrediction(item, scoreColumnName)));
+                requestUri = GetNextLink(document.RootElement);
             }
 
-            using var document = JsonDocument.Parse(body);
-            if (!document.RootElement.TryGetProperty("value", out var values) || values.ValueKind != JsonValueKind.Array)
+            if (scoreColumnName is not null && predictions.Count == 0)
             {
-                return Array.Empty<Prediction>();
+                continue;
             }
 
-            return values.EnumerateArray().Select(item => MapPrediction(item, scoreColumnName)).ToList();
+            return predictions;
         }
 
         return Array.Empty<Prediction>();
@@ -229,6 +243,13 @@ public sealed class DataversePredictionService
     {
         return body.Contains("Could not find a property named", StringComparison.OrdinalIgnoreCase) ||
             body.Contains("0x80060888", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? GetNextLink(JsonElement root)
+    {
+        return root.TryGetProperty("@odata.nextLink", out var nextLink) && nextLink.ValueKind == JsonValueKind.String
+            ? nextLink.GetString()
+            : null;
     }
 
     private static int? ParseNullableInt(string? value)
