@@ -12,6 +12,8 @@ import "./App.css";
 import { FixturePredictionTile } from "./FixturePredictiontile";
 import FixtureTile from "./FixtureTile";
 
+const DASHBOARD_REFRESH_INTERVAL_MS = 30000;
+
 function SignInButton() {
   const { instance } = useMsal();
 
@@ -171,17 +173,40 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let refreshInProgress = false;
+
     const loadDashboardData = async () => {
+      if (refreshInProgress) return;
+
+      refreshInProgress = true;
+
       try {
         await fetchDashboardData();
+        if (!cancelled) {
+          setError(null);
+        }
       } catch (err) {
-        setError(err.message);
+        if (!cancelled) {
+          setError(err.message);
+        }
       } finally {
-        setLoading(false);
+        refreshInProgress = false;
+
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadDashboardData();
+
+    const refreshInterval = setInterval(loadDashboardData, DASHBOARD_REFRESH_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(refreshInterval);
+    };
   }, [fetchDashboardData]);
 
   const calculatePredictionScore = ({
