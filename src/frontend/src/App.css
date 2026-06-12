@@ -589,6 +589,8 @@ input[type=number]::-webkit-outer-spin-button {
   font-weight: 600;
   font-size: 1rem;
   color: #20343b;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .PredictionFixtureTimes {
@@ -655,5 +657,242 @@ input[type=number]::-webkit-outer-spin-button {
 .SignInButton {
   height: 40px;
   width: 200px;
+}
+
+@media (max-width: 760px) {
+  .auth-header {
+    position: sticky;
+    top: 0;
+    left: auto;
+    max-width: none;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: 0 4px 14px rgba(32, 52, 59, 0.12);
+  }
+
+  .auth-email {
+    max-width: none;
+  }
+
+  .App {
+    min-height: 100vh;
+    height: auto;
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .AnnataLogo {
+    position: static;
+    align-self: center;
+    width: min(120px, 42vw);
+    margin: 8px 0 4px;
+  }
+
+  .Titlebar {
+    height: auto;
+    padding: 8px 0 12px;
+  }
+
+  .Titlebar h1,
+  .LoginHeader h1 {
+    font-size: 1.45rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .Titlebar p {
+    margin: 8px 0 0;
+    font-size: 0.95rem;
+  }
+
+  .Tabs {
+    width: 100%;
+    height: 44px;
+    display: flex;
+  }
+
+  .MainBody {
+    height: auto;
+    min-height: 0;
+    margin-top: 12px;
+    padding-top: 0;
+    overflow: visible;
+  }
+
+  .Predictions,
+  .FixturesBody {
+    position: static;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    border-radius: 10px;
+    overflow: visible;
+  }
+
+  .Predictions {
+    box-shadow: 3px 3px 10px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .Groups {
+    position: static;
+    height: auto;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .FixturesBody {
+    flex-direction: column;
+    gap: 16px;
+    padding: 0;
+  }
+
+  .Fixtures,
+  .Leaderboard {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    flex: none;
+    border-radius: 10px;
+  }
+
+  .Fixtures {
+    overflow: visible;
+  }
+
+  .Leaderboard {
+    max-height: 50vh;
+  }
+
+  .LeaderboardList {
+    margin: 8px 0 0;
+    min-height: 180px;
+  }
+
+  .PredictionsBody {
+    width: 100%;
+    height: auto;
+    padding: 0;
+    row-gap: 12px;
+    overflow: visible;
+  }
+
+  .PredictionsFixtures {
+    margin: 0;
+    overflow: visible;
+  }
+
+  .PredictionFixturesBody {
+    max-height: none;
+  }
+
+  .StageButtons {
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .StageButton {
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 0 8px;
+  }
+
+  .FixtureTile,
+  .FixtureTileBox,
+  .PredictionFixtureTileBox {
+    height: auto;
+    min-height: 118px;
+  }
+
+  .FixtureTileBox,
+  .PredictionFixtureTileBox {
+    gap: 10px;
+    padding: 16px 10px;
+  }
+
+  .PredictionFixtureTileHost {
+    width: 100%;
+    max-width: none;
+  }
+
+  .PredictionFixtureTileBox {
+    max-width: none;
+  }
+
+  .PredictionFixtureTeams {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .PredictionFixtureHomeTeam,
+  .PredictionFixtureAwayTeam {
+    flex: 1 1 0;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+
+  .PredictionFixtureTimes {
+    font-size: 0.85rem;
+  }
+
+  .ScorePrediction {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    font-size: 1.15rem;
+  }
+
+  .PredictionFixturesGrid {
+    gap: 16px;
+  }
+
+  .MatchDayHeader {
+    padding-top: 12px;
+  }
+
+  .SaveButton {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .UserScoreTile {
+    width: 96%;
+    min-height: 36px;
+    height: auto;
+    gap: 8px;
+  }
+
+  .Name {
+    overflow-wrap: anywhere;
+  }
+
+  .login-page {
+    min-height: 100vh;
+    height: auto;
+    padding: 24px 16px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .FixtureTileBox,
+  .PredictionFixtureTileBox {
+    padding: 14px 8px;
+  }
+
+  .ScorePrediction {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    font-size: 1rem;
+  }
+
+  .PredictionFixtureHomeTeam,
+  .PredictionFixtureAwayTeam {
+    font-size: 0.88rem;
+  }
 }
 

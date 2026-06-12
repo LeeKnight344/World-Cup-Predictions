@@ -643,6 +643,7 @@ function Dashboard() {
           style={{
             zIndex: fixturesOnTop ? 0 : 2,
             visibility: fixturesOnTop ? "hidden" : "visible",
+            display: fixturesOnTop ? "none" : "block",
           }}
         >
           <div className="Groups">
@@ -717,6 +718,7 @@ function Dashboard() {
           className="FixturesBody"
           style={{
             visibility: fixturesOnTop ? "visible" : "hidden",
+            display: fixturesOnTop ? "flex" : "none",
           }}
         >
           <div className="Fixtures">
