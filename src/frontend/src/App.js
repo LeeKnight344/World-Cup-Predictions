@@ -1,7 +1,7 @@
 //use a .js formatting tool from VS otherwise i'm going to ddos you
 
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   AuthenticatedTemplate,
   UnauthenticatedTemplate,
@@ -146,43 +146,68 @@ function Dashboard() {
   const [loadingPredictionsPage, setLoadingPredictionsPage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const latestDashboardFetchId = useRef(0);
+  const dashboardRefreshInProgress = useRef(false);
+  const savingPredictionsInProgress = useRef(false);
 
-  const fetchDashboardData = useCallback(async () => {
-    const [fixturesResponse, predictionsResponse] = await Promise.all([
-      fetch("/api/fixtures"),
-      fetch("/api/predictions"),
-    ]);
-
-    if (!fixturesResponse.ok) {
-      throw new Error("Failed to fetch fixtures");
+  const fetchDashboardData = useCallback(async ({ applyToState = true, skipIfBusy = false } = {}) => {
+    if (skipIfBusy && (dashboardRefreshInProgress.current || savingPredictionsInProgress.current)) {
+      return null;
     }
 
-    if (!predictionsResponse.ok) {
-      throw new Error("Failed to fetch predictions");
+    const fetchId = latestDashboardFetchId.current + 1;
+    latestDashboardFetchId.current = fetchId;
+    dashboardRefreshInProgress.current = true;
+
+    try {
+      const [fixturesResponse, predictionsResponse] = await Promise.all([
+        fetch("/api/fixtures"),
+        fetch("/api/predictions"),
+      ]);
+
+      if (!fixturesResponse.ok) {
+        throw new Error("Failed to fetch fixtures");
+      }
+
+      if (!predictionsResponse.ok) {
+        throw new Error("Failed to fetch predictions");
+      }
+
+      const [fixturesData, predictionsData] = await Promise.all([
+        fixturesResponse.json(),
+        predictionsResponse.json(),
+      ]);
+
+      if (
+        applyToState &&
+        fetchId === latestDashboardFetchId.current &&
+        !savingPredictionsInProgress.current
+      ) {
+        setFixtures(fixturesData);
+        setPredictions(predictionsData);
+      }
+
+      return { fixtures: fixturesData, predictions: predictionsData };
+    } catch (err) {
+      if (fetchId !== latestDashboardFetchId.current) {
+        return null;
+      }
+
+      throw err;
+    } finally {
+      if (fetchId === latestDashboardFetchId.current) {
+        dashboardRefreshInProgress.current = false;
+      }
     }
-
-    const [fixturesData, predictionsData] = await Promise.all([
-      fixturesResponse.json(),
-      predictionsResponse.json(),
-    ]);
-
-    setFixtures(fixturesData);
-    setPredictions(predictionsData);
-
-    return { fixtures: fixturesData, predictions: predictionsData };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    let refreshInProgress = false;
-
     const loadDashboardData = async () => {
-      if (refreshInProgress) return;
-
-      refreshInProgress = true;
-
       try {
-        await fetchDashboardData();
+        const data = await fetchDashboardData({ skipIfBusy: true });
+        if (!data) return;
+
         if (!cancelled) {
           setError(null);
         }
@@ -191,8 +216,6 @@ function Dashboard() {
           setError(err.message);
         }
       } finally {
-        refreshInProgress = false;
-
         if (!cancelled) {
           setLoading(false);
         }
@@ -391,13 +414,17 @@ function Dashboard() {
 
   const savePredictionChanges = async () => {
     const changedPredictions = Object.entries(predictionEdits);
-    if (changedPredictions.length === 0 || savingPredictions) return;
+    if (changedPredictions.length === 0 || savingPredictions || savingPredictionsInProgress.current) return;
 
+    const submittedEdits = Object.fromEntries(changedPredictions);
+    savingPredictionsInProgress.current = true;
     setSavingPredictions(true);
     setSaveError(null);
 
     try {
-      const { fixtures: latestFixtures, predictions: latestPredictions } = await fetchDashboardData();
+      const { fixtures: latestFixtures, predictions: latestPredictions } = await fetchDashboardData({
+        applyToState: false,
+      });
       const latestFixtureById = indexById(latestFixtures);
       const latestPredictionById = indexById(latestPredictions);
 
@@ -456,9 +483,10 @@ function Dashboard() {
         throw new Error(errorText || "Failed to save predictions");
       }
 
-      setPredictions((current) =>
-        current.map((prediction) => {
-          const edit = predictionEdits[prediction.id];
+      setFixtures(latestFixtures);
+      setPredictions(
+        latestPredictions.map((prediction) => {
+          const edit = submittedEdits[prediction.id];
           if (!edit) return prediction;
 
           return {
@@ -478,10 +506,21 @@ function Dashboard() {
           };
         })
       );
-      setPredictionEdits({});
+      setPredictionEdits((current) => {
+        const remainingEdits = { ...current };
+
+        for (const [predictionId, edit] of Object.entries(submittedEdits)) {
+          if (remainingEdits[predictionId] === edit) {
+            delete remainingEdits[predictionId];
+          }
+        }
+
+        return remainingEdits;
+      });
     } catch (err) {
       setSaveError(err.message);
     } finally {
+      savingPredictionsInProgress.current = false;
       setSavingPredictions(false);
     }
   };
