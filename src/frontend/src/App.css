@@ -276,10 +276,47 @@
   box-sizing: border-box;
 }
 
+.LeaderboardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
 .LeaderboardTitle {
-  height: 20px;
+  margin: 0;
   text-align: center;
   font-weight: bolder;
+}
+
+.LeaderboardExportButton {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #20343b;
+  border-radius: 6px;
+  background: #20343b;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.LeaderboardExportButton:hover {
+  background: #2f4b55;
+}
+
+.LeaderboardExportButton:active {
+  background: #17262c;
+}
+
+.LeaderboardExportButton:disabled {
+  border-color: #c7ced6;
+  background: #eef2f7;
+  color: #7a8790;
+  cursor: not-allowed;
 }
 
 .LeaderboardList {
@@ -765,6 +802,10 @@ input[type=number]::-webkit-outer-spin-button {
 
   .Leaderboard {
     max-height: 50vh;
+  }
+
+  .LeaderboardHeader {
+    justify-content: space-between;
   }
 
   .LeaderboardList {

@@ -14,6 +14,237 @@ import FixtureTile from "./FixtureTile";
 
 const DASHBOARD_REFRESH_INTERVAL_MS = 30000;
 
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+
+  for (let i = 0; i < table.length; i += 1) {
+    let value = i;
+
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    }
+
+    table[i] = value >>> 0;
+  }
+
+  return table;
+})();
+
+const escapeXmlValue = (value) => {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+};
+
+const getExcelColumnName = (index) => {
+  let column = "";
+  let value = index + 1;
+
+  while (value > 0) {
+    const remainder = (value - 1) % 26;
+    column = String.fromCharCode(65 + remainder) + column;
+    value = Math.floor((value - 1) / 26);
+  }
+
+  return column;
+};
+
+const createWorksheetXml = (rows) => {
+  const lastColumn = getExcelColumnName(rows[0].length - 1);
+  const sheetRows = rows
+    .map((row, rowIndex) => {
+      const rowNumber = rowIndex + 1;
+      const cells = row
+        .map((cell, cellIndex) => {
+          const reference = `${getExcelColumnName(cellIndex)}${rowNumber}`;
+
+          if (typeof cell === "number") {
+            return `<c r="${reference}"><v>${cell}</v></c>`;
+          }
+
+          return `<c r="${reference}" t="inlineStr"><is><t>${escapeXmlValue(cell)}</t></is></c>`;
+        })
+        .join("");
+
+      return `<row r="${rowNumber}">${cells}</row>`;
+    })
+    .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:${lastColumn}${rows.length}" />
+  <sheetViews>
+    <sheetView workbookViewId="0" />
+  </sheetViews>
+  <sheetFormatPr defaultRowHeight="15" />
+  <cols>
+    <col min="1" max="1" width="10" customWidth="1" />
+    <col min="2" max="2" width="32" customWidth="1" />
+    <col min="3" max="3" width="22" customWidth="1" />
+    <col min="4" max="4" width="12" customWidth="1" />
+  </cols>
+  <sheetData>${sheetRows}</sheetData>
+</worksheet>`;
+};
+
+const getCrc32 = (bytes) => {
+  let crc = 0xffffffff;
+
+  for (const byte of bytes) {
+    crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+const writeUint16 = (buffer, offset, value) => {
+  buffer[offset] = value & 0xff;
+  buffer[offset + 1] = (value >>> 8) & 0xff;
+};
+
+const writeUint32 = (buffer, offset, value) => {
+  buffer[offset] = value & 0xff;
+  buffer[offset + 1] = (value >>> 8) & 0xff;
+  buffer[offset + 2] = (value >>> 16) & 0xff;
+  buffer[offset + 3] = (value >>> 24) & 0xff;
+};
+
+const getZipDateParts = () => {
+  const now = new Date();
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+
+  return { time, date };
+};
+
+const concatByteArrays = (arrays) => {
+  const totalLength = arrays.reduce((total, array) => total + array.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const array of arrays) {
+    result.set(array, offset);
+    offset += array.length;
+  }
+
+  return result;
+};
+
+const createZipBlob = (files, mimeType) => {
+  const encoder = new TextEncoder();
+  const { time, date } = getZipDateParts();
+  const localFileParts = [];
+  const centralDirectoryParts = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const dataBytes = encoder.encode(file.content);
+    const crc = getCrc32(dataBytes);
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+
+    writeUint32(localHeader, 0, 0x04034b50);
+    writeUint16(localHeader, 4, 20);
+    writeUint16(localHeader, 6, 0);
+    writeUint16(localHeader, 8, 0);
+    writeUint16(localHeader, 10, time);
+    writeUint16(localHeader, 12, date);
+    writeUint32(localHeader, 14, crc);
+    writeUint32(localHeader, 18, dataBytes.length);
+    writeUint32(localHeader, 22, dataBytes.length);
+    writeUint16(localHeader, 26, nameBytes.length);
+    writeUint16(localHeader, 28, 0);
+    localHeader.set(nameBytes, 30);
+
+    localFileParts.push(localHeader, dataBytes);
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    writeUint32(centralHeader, 0, 0x02014b50);
+    writeUint16(centralHeader, 4, 20);
+    writeUint16(centralHeader, 6, 20);
+    writeUint16(centralHeader, 8, 0);
+    writeUint16(centralHeader, 10, 0);
+    writeUint16(centralHeader, 12, time);
+    writeUint16(centralHeader, 14, date);
+    writeUint32(centralHeader, 16, crc);
+    writeUint32(centralHeader, 20, dataBytes.length);
+    writeUint32(centralHeader, 24, dataBytes.length);
+    writeUint16(centralHeader, 28, nameBytes.length);
+    writeUint16(centralHeader, 30, 0);
+    writeUint16(centralHeader, 32, 0);
+    writeUint16(centralHeader, 34, 0);
+    writeUint16(centralHeader, 36, 0);
+    writeUint32(centralHeader, 38, 0);
+    writeUint32(centralHeader, 42, offset);
+    centralHeader.set(nameBytes, 46);
+
+    centralDirectoryParts.push(centralHeader);
+    offset += localHeader.length + dataBytes.length;
+  }
+
+  const centralDirectory = concatByteArrays(centralDirectoryParts);
+  const endRecord = new Uint8Array(22);
+
+  writeUint32(endRecord, 0, 0x06054b50);
+  writeUint16(endRecord, 4, 0);
+  writeUint16(endRecord, 6, 0);
+  writeUint16(endRecord, 8, files.length);
+  writeUint16(endRecord, 10, files.length);
+  writeUint32(endRecord, 12, centralDirectory.length);
+  writeUint32(endRecord, 16, offset);
+  writeUint16(endRecord, 20, 0);
+
+  return new Blob([...localFileParts, centralDirectory, endRecord], { type: mimeType });
+};
+
+const createExcelWorkbookBlob = (rows) => {
+  const mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  const files = [
+    {
+      name: "[Content_Types].xml",
+      content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
+  <Default Extension="xml" ContentType="application/xml" />
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" />
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" />
+</Types>`,
+    },
+    {
+      name: "_rels/.rels",
+      content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml" />
+</Relationships>`,
+    },
+    {
+      name: "xl/workbook.xml",
+      content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Leaderboard" sheetId="1" r:id="rId1" />
+  </sheets>
+</workbook>`,
+    },
+    {
+      name: "xl/_rels/workbook.xml.rels",
+      content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml" />
+</Relationships>`,
+    },
+    {
+      name: "xl/worksheets/sheet1.xml",
+      content: createWorksheetXml(rows),
+    },
+  ];
+
+  return createZipBlob(files, mimeType);
+};
+
 function SignInButton() {
   const { instance } = useMsal();
 
@@ -143,6 +374,7 @@ function Dashboard() {
   const [predictionEdits, setPredictionEdits] = useState({});
   const [savingPredictions, setSavingPredictions] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [exportingLeaderboard, setExportingLeaderboard] = useState(false);
   const [loadingPredictionsPage, setLoadingPredictionsPage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -323,6 +555,72 @@ function Dashboard() {
       return acc;
     }, {})
   ).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+
+  const exportLeaderboard = async () => {
+    if (scores.length === 0 || exportingLeaderboard) return;
+
+    const getProfileName = (profile, fallbackEmail) => {
+      const firstName = profile?.firstName?.trim() ?? "";
+      const lastName = profile?.lastName?.trim() ?? "";
+      const fullName = `${firstName} ${lastName}`.trim();
+      return fullName || profile?.fullName || fallbackEmail;
+    };
+
+    setExportingLeaderboard(true);
+    setSaveError(null);
+
+    try {
+      const response = await fetch("/api/leaderboard/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          emails: scores.map((player) => player.name),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to enrich leaderboard users");
+      }
+
+      const profiles = await response.json();
+      const profileByEmail = profiles.reduce((acc, profile) => {
+        if (profile.email) {
+          acc[profile.email.toLowerCase()] = profile;
+        }
+        return acc;
+      }, {});
+
+      const worksheetRows = [
+        ["Rank", "Name", "Region", "Points"],
+        ...scores.map((player, index) => {
+          const profile = profileByEmail[player.name.toLowerCase()];
+          return [
+            index + 1,
+            getProfileName(profile, player.name),
+            profile?.region ?? "",
+            player.points,
+          ];
+        }),
+      ];
+      const blob = createExcelWorkbookBlob(worksheetRows);
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = downloadUrl;
+      link.download = `leaderboard-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setExportingLeaderboard(false);
+    }
+  };
 
   const scoresList = scores.map((player) => (
     <button key={player.name} className="UserScoreTile">
@@ -754,7 +1052,17 @@ function Dashboard() {
           </div>
 
           <div className="Leaderboard">
-            <p className="LeaderboardTitle">Leaderboard</p>
+            <div className="LeaderboardHeader">
+              <p className="LeaderboardTitle">Leaderboard</p>
+              <button
+                className="LeaderboardExportButton"
+                disabled={scores.length === 0 || exportingLeaderboard}
+                onClick={exportLeaderboard}
+                type="button"
+              >
+                {exportingLeaderboard ? "Exporting" : "Export Excel"}
+              </button>
+            </div>
 
             <div className="LeaderboardList">
               <ul className="LeaderboardScoresList">{scoresList}</ul>

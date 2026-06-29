@@ -9,6 +9,7 @@ builder.Services.Configure<DataverseOptions>(builder.Configuration.GetSection("D
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<DataverseFixtureService>();
 builder.Services.AddScoped<DataversePredictionService>();
+builder.Services.AddScoped<LeaderboardUserProfileService>();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
@@ -48,6 +49,22 @@ app.MapGet("/api/predictions", async (DataversePredictionService service, Cancel
 {
     var predictions = await service.GetPredictionsAsync(cancellationToken);
     return Results.Ok(predictions);
+});
+
+app.MapPost("/api/leaderboard/users", async (
+    LeaderboardUserLookupRequest request,
+    LeaderboardUserProfileService service,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        var profiles = await service.GetProfilesAsync(request.Emails, cancellationToken);
+        return Results.Ok(profiles);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Problem(ex.Message, statusCode: StatusCodes.Status502BadGateway);
+    }
 });
 
 app.MapPost("/api/predictions/submit", async (
