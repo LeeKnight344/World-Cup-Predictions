@@ -70,6 +70,7 @@ app.MapPost("/api/leaderboard/users", async (
 app.MapPost("/api/predictions/submit", async (
     JsonElement submission,
     IConfiguration configuration,
+    DataverseFixtureService fixtureService,
     IHttpClientFactory httpClientFactory,
     ILogger<Program> logger,
     CancellationToken cancellationToken) =>
@@ -86,10 +87,14 @@ app.MapPost("/api/predictions/submit", async (
         return Results.Problem("Prediction save endpoint must be an HTTPS URL.", statusCode: StatusCodes.Status500InternalServerError);
     }
 
-    var enrichedSubmission = EnrichSubmissionWithScores(submission);
+    var enrichment = await EnrichSubmissionWithScoresAsync(submission, fixtureService, cancellationToken);
+    if (enrichment.Error is not null)
+    {
+        return enrichment.Error;
+    }
 
     var client = httpClientFactory.CreateClient();
-    using var content = new StringContent(enrichedSubmission, Encoding.UTF8, "application/json");
+    using var content = new StringContent(enrichment.Submission, Encoding.UTF8, "application/json");
     var response = await client.PostAsync(endpointUri, content, cancellationToken);
 
     if (!response.IsSuccessStatusCode)
@@ -154,22 +159,28 @@ app.MapPatch("/api/predictions/{predictionId}", async (
     DataverseFixtureService fixtureService,
     CancellationToken cancellationToken) =>
 {
-    int? score = null;
     var fixtures = await fixtureService.GetFixturesAsync(cancellationToken);
     var fixture = fixtures.FirstOrDefault(f => string.Equals(f.Id, update.FixtureId, StringComparison.OrdinalIgnoreCase));
 
-    if (fixture is not null)
+    if (fixture is null)
     {
-        score = PredictionScoring.CalculateScore(
-            fixture.MatchStatus,
-            fixture.HomeTeamScore,
-            fixture.AwayTeamScore,
-            fixture.HomeTeamPenaltyScore,
-            fixture.AwayTeamPenaltyScore,
-            fixture.PenaltyBoolean,
-            update.Team1ScorePrediction,
-            update.Team2ScorePrediction);
+        return Results.BadRequest("Fixture could not be found for this prediction.");
     }
+
+    if (IsPredictionLocked(fixture))
+    {
+        return Results.Conflict("Predictions are locked once the fixture has started or is no longer scheduled.");
+    }
+
+    var score = PredictionScoring.CalculateScore(
+        fixture.MatchStatus,
+        fixture.HomeTeamScore,
+        fixture.AwayTeamScore,
+        fixture.HomeTeamPenaltyScore,
+        fixture.AwayTeamPenaltyScore,
+        fixture.PenaltyBoolean,
+        update.Team1ScorePrediction,
+        update.Team2ScorePrediction);
 
     await predictionService.UpdatePredictionAsync(
         predictionId,
@@ -183,14 +194,22 @@ app.MapPatch("/api/predictions/{predictionId}", async (
 
 app.Run();
 
-static string EnrichSubmissionWithScores(JsonElement submission)
+static async Task<(string Submission, IResult? Error)> EnrichSubmissionWithScoresAsync(
+    JsonElement submission,
+    DataverseFixtureService fixtureService,
+    CancellationToken cancellationToken)
 {
     var node = JsonNode.Parse(submission.GetRawText());
     if (node is not JsonObject payload ||
         payload["predictions"] is not JsonArray predictions)
     {
-        return submission.GetRawText();
+        return (submission.GetRawText(), null);
     }
+
+    var fixtures = await fixtureService.GetFixturesAsync(cancellationToken);
+    var fixturesById = fixtures
+        .Where(fixture => !string.IsNullOrWhiteSpace(fixture.Id))
+        .ToDictionary(fixture => fixture.Id, StringComparer.OrdinalIgnoreCase);
 
     foreach (var predictionNode in predictions)
     {
@@ -199,29 +218,58 @@ static string EnrichSubmissionWithScores(JsonElement submission)
             continue;
         }
 
-        var fixtureRecord = prediction["fixtureRecord"] as JsonObject;
-        var actualTeam1Score = GetNullableInt(fixtureRecord, "homeTeamScore");
-        var actualTeam2Score = GetNullableInt(fixtureRecord, "awayTeamScore");
-        var actualTeam1PenaltyScore = GetNullableInt(fixtureRecord, "homeTeamPenaltyScore");
-        var actualTeam2PenaltyScore = GetNullableInt(fixtureRecord, "awayTeamPenaltyScore");
-        var penaltyBoolean = GetBoolean(fixtureRecord, "penaltyBoolean");
-        var matchStatus = GetString(fixtureRecord, "matchStatus");
+        var fixture = GetFixtureForPrediction(prediction, fixturesById);
+        if (fixture is null)
+        {
+            return (submission.GetRawText(), Results.BadRequest("Fixture could not be found for one or more predictions."));
+        }
+
+        if (IsPredictionLocked(fixture))
+        {
+            return (submission.GetRawText(), Results.Conflict("Predictions are locked once the fixture has started or is no longer scheduled."));
+        }
+
         var predictedTeam1Score = GetNullableInt(prediction, "team1ScorePrediction");
         var predictedTeam2Score = GetNullableInt(prediction, "team2ScorePrediction");
         var score = PredictionScoring.CalculateScore(
-            matchStatus,
-            actualTeam1Score,
-            actualTeam2Score,
-            actualTeam1PenaltyScore,
-            actualTeam2PenaltyScore,
-            penaltyBoolean,
+            fixture.MatchStatus,
+            fixture.HomeTeamScore,
+            fixture.AwayTeamScore,
+            fixture.HomeTeamPenaltyScore,
+            fixture.AwayTeamPenaltyScore,
+            fixture.PenaltyBoolean,
             predictedTeam1Score,
             predictedTeam2Score);
 
         prediction["score"] = score is null ? null : JsonValue.Create(score.Value);
     }
 
-    return payload.ToJsonString();
+    return (payload.ToJsonString(), null);
+}
+
+static bool IsPredictionLocked(Fixture fixture)
+{
+    return !string.Equals(fixture.MatchStatus, "scheduled", StringComparison.OrdinalIgnoreCase) ||
+        fixture.Kickoff is null ||
+        fixture.Kickoff <= DateTimeOffset.UtcNow;
+}
+
+static Fixture? GetFixtureForPrediction(JsonObject prediction, IReadOnlyDictionary<string, Fixture> fixturesById)
+{
+    var fixtureId = GetString(prediction, "fixtureId");
+    if (!string.IsNullOrWhiteSpace(fixtureId) && fixturesById.TryGetValue(fixtureId, out var fixture))
+    {
+        return fixture;
+    }
+
+    var fixtureRecord = prediction["fixtureRecord"] as JsonObject;
+    fixtureId = GetString(fixtureRecord, "id");
+    if (!string.IsNullOrWhiteSpace(fixtureId) && fixturesById.TryGetValue(fixtureId, out fixture))
+    {
+        return fixture;
+    }
+
+    return null;
 }
 
 static int? GetNullableInt(JsonObject? obj, string propertyName)
@@ -242,26 +290,6 @@ static int? GetNullableInt(JsonObject? obj, string propertyName)
     }
 
     return null;
-}
-
-static bool GetBoolean(JsonObject? obj, string propertyName)
-{
-    if (obj is null || obj[propertyName] is not JsonValue value)
-    {
-        return false;
-    }
-
-    if (value.TryGetValue<bool>(out var boolValue))
-    {
-        return boolValue;
-    }
-
-    if (value.TryGetValue<string>(out var stringValue) && bool.TryParse(stringValue, out var parsed))
-    {
-        return parsed;
-    }
-
-    return false;
 }
 
 static string? GetString(JsonObject? obj, string propertyName)
